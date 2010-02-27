@@ -133,26 +133,29 @@ public class WallFollowerExample {
 				// if we're getting too close to the wall with the left side...
 				if (leftSide < MIN_WALL_THRESHOLD) {
 					if (yawSpeed <= 0.01)
-						yawSpeed = -1.0f;
+						yawSpeed = -0.5f;
 					xSpeed   = DEF_X_SPEED / 2;
-					yawSpeed = - yawSpeed/2;
+					yawSpeed = DEF_YAW_SPEED;
+					//yawSpeed = - yawSpeed/3;
 					System.out.println("2close with left");
 				}
 				else
 					if(leftSide >= MIN_WALL_THRESHOLD && leftSide <= MAX_WALL_THRESHOLD){
-						xSpeed = DEF_X_SPEED;
+						xSpeed = DEF_X_SPEED*2;
 						yawSpeed = 0;
 						System.out.println("straight line");
 					}else
 					// if we're getting too far away from the wall with the left side...
 					if (leftSide > MAX_WALL_THRESHOLD) {
-						if (xSpeed <= 0.1 || xSpeed >= 10.0f)
+						if (xSpeed <= 0.5)
 							xSpeed = DEF_X_SPEED*1.5f;
-						if (yawSpeed <= 0.1)
-							yawSpeed = 2.0f;
+						if (yawSpeed <= 0.5)
+							yawSpeed = 3.0f;
 						// move slower at corners
-						xSpeed   = xSpeed/1.5f;
-						yawSpeed = yawSpeed/1.1f;
+						xSpeed   = leftSide+1;
+						//xSpeed   = xSpeed-0.5f;
+						yawSpeed = leftSide*3f;
+						//yawSpeed = yawSpeed*0.7f;
 					//	yawSpeed = yawSpeed*1.2f;
 						System.out.println("2far with left");
 					}
@@ -160,7 +163,7 @@ public class WallFollowerExample {
 			// Move the robot
 			posi.setSpeed (xSpeed, yawSpeed);
 			System.out.println ("Left side : [" + leftSide + "], Front side : [" + frontSide +"], Right side: [" + rightSide +"], xSpeed : [" + xSpeed + "], yawSpeed : [" + yawSpeed + "]\n");
-			try { Thread.sleep (10); } catch (Exception e) { }
+			try { Thread.sleep (50); } catch (Exception e) { }
 			
 		}
 	}
