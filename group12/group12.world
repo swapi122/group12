@@ -1,0 +1,164 @@
+include "group12map.inc"
+include "group12robot.inc"
+include "obstacle.inc"
+include "fire.inc"
+include "dead.inc"
+include "living.inc"
+size [61.46 33.48]
+
+
+window
+(
+size [1100.0 650.0]
+scale 0.06
+)
+#configure the GUI window
+
+map
+(
+bitmap "samplemap.png"
+size [61.45 33.48]
+)
+
+robot
+(
+name "g12robot"
+pose [-26.0 -13.0 0]
+color "green"
+)
+
+obstacle
+(
+	color "red"
+	size [0.8 0.6]
+	pose [-8.300 -1.500 0.000]
+)
+
+
+obstacle
+(
+	color "SkyBlue"
+	size [0.5 0.5]
+	pose [-22.400 -1.000 0.000]
+)
+
+
+obstacle
+(
+	color "red"
+	size [0.8 0.6]
+	pose [-13.600 -7.400 0.000]
+)
+
+obstacle
+(
+	color "green"
+	size [1 1]
+	pose [-21.600 -11.000 0.000]
+)
+
+obstacle
+(
+	color "green"
+	size [1 1]
+	pose [-24.800 -3.600 0.000]
+)
+
+obstacle
+(
+	color "SkyBlue"
+	size [0.5 0.5]
+	pose [-21.800 -1.400 0.000]
+)
+
+obstacle
+(
+	color "red"
+	size [0.8 0.6]
+	pose [-16.300 -2.300 0.000]
+)
+
+obstacle
+(
+	color "green"
+	size [1 1]
+	pose [3.000 1.100 0.000]
+)
+
+obstacle
+(
+	color "SkyBlue"
+	size [0.5 0.5]
+	pose [-21.300 -0.700 0.000]
+)
+
+obstacle
+(
+	color "red"
+	size [0.8 0.6]
+	pose [-4.200 2.400 0.000]
+)
+
+obstacle
+(
+	color "green"
+	size [1 1]
+	pose [-20.500 2.300 0.000]
+)
+
+obstacle
+(
+	color "SkyBlue"
+	size [0.5 0.5]
+	pose [-23.400 -6.400 0.000]
+)
+
+obstacle
+(
+	color "red"
+	size [0.8 0.6]
+	pose [-4.000 -10.000 0.000]
+)
+
+
+fire 
+(
+ 	pose [-11.100 1.400 0.000]
+)
+
+fire 
+(
+ 	pose [-24.300 5.200 0.000]
+)
+
+fire 
+(
+ 	pose [-19.000 7.800 0.000]
+)
+
+fire 
+(
+ 	pose [-29.500 2.000 0.000]
+)
+
+living
+(
+	pose [-16.400 1.900 1.000]
+)
+
+living
+(
+	pose [-18.400 -8.500 1.000]
+)
+
+dead
+(
+	pose [-9.800 3.400 0.000]
+)
+
+dead
+(
+	pose [-28.700 -5.200 0.000]
+)
+
+
