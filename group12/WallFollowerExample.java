@@ -21,7 +21,7 @@
  */
 
 
-//testing
+
 import java.text.NumberFormat;
 
 import javaclient2.PlayerClient;
