@@ -23,7 +23,7 @@ size [61.45 33.48]
 robot
 (
 name "g12robot"
-pose [-26.0 -13.0 0]
+pose [0.36 -1.30 0]
 color "green"
 )
 
