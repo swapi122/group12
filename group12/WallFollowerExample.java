@@ -23,6 +23,7 @@
 
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
 
 import javaclient2.PlayerClient;
 import javaclient2.PlayerException;
@@ -32,35 +33,48 @@ import javaclient2.structures.PlayerConstants;
 
 public class WallFollowerExample {
 	
-	 NumberFormat fmt = NumberFormat.getInstance ();
+	NumberFormat fmt = NumberFormat.getInstance ();
 	
 	// define minimum/maximum allowed values for the SONAR sensors
-	 float SONAR_MIN_VALUE = 0.2f;
-	 float SONAR_MAX_VALUE = 5.0f;
+	float SONAR_MIN_VALUE = 0.2f;
+	float SONAR_MAX_VALUE = 5.0f;
 	
 	// define the wall threshold
-	 float MIN_WALL_THRESHOLD  = 0.5f;
-	 float MAX_WALL_THRESHOLD  = 0.6f;
+	float MIN_WALL_THRESHOLD  = 0.5f;
+	float MAX_WALL_THRESHOLD  = 0.6f;
 	
 	// define the default translational and rotational speeds
 	 
 
-	 float DEF_X_SPEED   = 2.0f;
-	 float DEF_YAW_SPEED = 0.5f;
+	float DEF_X_SPEED   = 2.0f;
+	float DEF_YAW_SPEED = 0.5f;
 	// float DEF_X_SPEED   = 0.2f;
 	// float DEF_YAW_SPEED = 0.15f;
 	 
-	 float xSpeed = DEF_X_SPEED;
+	float xSpeed = DEF_X_SPEED;
 	float yawSpeed = 0;
 	
 	// array to hold the SONAR sensor values
-	 float[] sonarValues;
-	 float frontSide, leftSide, rightSide;
+	float[] sonarValues;
+	float frontSide, leftSide, rightSide;
 	
+	
+	Thread posiThd;
+	ArrayList<Float> posX = new ArrayList<Float>();
+	ArrayList<Float> posY = new ArrayList<Float>();
+	
+	
+	
+	ArrayList<Long> preTime = new ArrayList<Long>();
+	float preX;
+	float preY;
+	
+	PlayerClient        robot = null;
+	Position2DInterface posi  = null;
+	SonarInterface      soni  = null;
+	 
 	public WallFollowerExample(){
-		PlayerClient        robot = null;
-		Position2DInterface posi  = null;
-		SonarInterface      soni  = null;
+
 		
 		try {
 			// Connect to the Player server and request access to Position and Sonar
@@ -78,6 +92,10 @@ public class WallFollowerExample {
 		// Go ahead and find a wall and align to it on the robot's left side
 		getWall (posi, soni);
 		
+		posiThd = new Thread(new PosiThread(posi, posX, posY));
+		posiThd.start();
+		
+		
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
 			getSonars (soni);
@@ -88,6 +106,16 @@ public class WallFollowerExample {
 			yawSpeed = 0;
 			
 			*/
+			
+			if(isStuck()){
+				System.out.println("robot stuck");
+				if (posX.size()>1)
+					System.out.println("posX: "+ posX.get(posX.size()-1)+ "pre posX "+ posX.get(posX.size()-2));
+				try {Thread.sleep(2000);} catch (InterruptedException e) {}
+				
+			}
+				
+				
 			//2close to the wall with right side
 			if(rightSide<SONAR_MIN_VALUE || leftSide<SONAR_MIN_VALUE || frontSide<SONAR_MIN_VALUE){
 				if (rightSide == Math.min(Math.min(rightSide, leftSide),frontSide))
@@ -134,27 +162,43 @@ public class WallFollowerExample {
 				if (leftSide < MIN_WALL_THRESHOLD) {
 					if (yawSpeed <= 0.01)
 						yawSpeed = -0.5f;
-					xSpeed   = DEF_X_SPEED / 2;
-					yawSpeed = DEF_YAW_SPEED;
+					xSpeed   = DEF_X_SPEED / 2;		/*
+					if((preX==posi.getX() || preX + 0.5 == posi.getX() || preX -0.5 == posi.getX())){
+					if(preY==posi.getY() || preY + 0.5 == posi.getY() || preY -0.5 == posi.getX() ){
+						/*
+						preX = posi.getX();
+						preY = posi.getY();
+						if (preTime.size()>1000)
+							preTime.remove(0);
+						preTime.add(System.currentTimeMillis());
+						System.out.println(System.currentTimeMillis()-preX);
+						
+						return true;
+					}
+				}
+				
+				preX = posi.getX();
+				preY = posi.getY();
+				preTime.add(System.currentTimeMillis());
+				*/
+					yawSpeed = DEF_YAW_SPEED / 2;
 					//yawSpeed = - yawSpeed/3;
 					System.out.println("2close with left");
 				}
 				else
 					if(leftSide >= MIN_WALL_THRESHOLD && leftSide <= MAX_WALL_THRESHOLD){
-						xSpeed = DEF_X_SPEED*2;
+						xSpeed = DEF_X_SPEED;
 						yawSpeed = 0;
 						System.out.println("straight line");
 					}else
 					// if we're getting too far away from the wall with the left side...
 					if (leftSide > MAX_WALL_THRESHOLD) {
-						if (xSpeed <= 0.5)
-							xSpeed = DEF_X_SPEED*1.5f;
-						if (yawSpeed <= 0.5)
-							yawSpeed = 3.0f;
+						posi.setSpeed(0, 0);
+						try { Thread.sleep (100); } catch (Exception e) { }
 						// move slower at corners
 						xSpeed   = leftSide+1;
 						//xSpeed   = xSpeed-0.5f;
-						yawSpeed = leftSide*3f;
+						yawSpeed = leftSide*5f;
 						//yawSpeed = yawSpeed*0.7f;
 					//	yawSpeed = yawSpeed*1.2f;
 						System.out.println("2far with left");
@@ -163,7 +207,7 @@ public class WallFollowerExample {
 			// Move the robot
 			posi.setSpeed (xSpeed, yawSpeed);
 			System.out.println ("Left side : [" + leftSide + "], Front side : [" + frontSide +"], Right side: [" + rightSide +"], xSpeed : [" + xSpeed + "], yawSpeed : [" + yawSpeed + "]\n");
-			try { Thread.sleep (50); } catch (Exception e) { }
+			try { Thread.sleep (100); } catch (Exception e) { }
 			
 		}
 	}
@@ -171,7 +215,35 @@ public class WallFollowerExample {
 		new WallFollowerExample();
 	}
 	
-	 void getWall (Position2DInterface posi, SonarInterface soni) {
+	public boolean isStuck(){
+		if(posX.get(posX.size()-1)- posX.get(posX.size()-2)<=1){
+			if(posY.get(posY.size()-1)- posY.get(posY.size()-2)<=1)
+				return true;
+			
+		}
+		return false;
+		/*
+		if((preX==posi.getX() || preX + 0.5 == posi.getX() || preX -0.5 == posi.getX())){
+			if(preY==posi.getY() || preY + 0.5 == posi.getY() || preY -0.5 == posi.getX() ){
+				/*
+				preX = posi.getX();
+				preY = posi.getY();
+				if (preTime.size()>1000)
+					preTime.remove(0);
+				preTime.add(System.currentTimeMillis());
+				System.out.println(System.currentTimeMillis()-preX);
+				
+				return true;
+			}
+		}
+		
+		preX = posi.getX();
+		preY = posi.getY();
+		preTime.add(System.currentTimeMillis());
+		*/
+	}
+	
+	public void getWall (Position2DInterface posi, SonarInterface soni) {
 		// get all SONAR values and perform the necessary adjustments
 		getSonars (soni);
 		
@@ -203,7 +275,7 @@ public class WallFollowerExample {
 		posi.setSpeed (0, 0);
 	}
 	
-	 void getSonars (SonarInterface soni) {
+	public void getSonars (SonarInterface soni) {
 		while (!soni.isDataReady ());
 		sonarValues = soni.getData ().getRanges ();
 		/*
