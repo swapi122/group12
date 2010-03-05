@@ -37,7 +37,7 @@ public class WallFollowerExample {
 	
 	// define minimum/maximum allowed values for the SONAR sensors
 	float SONAR_MIN_VALUE = 0.2f;
-	float SONAR_MAX_VALUE = 5.0f;
+	float SONAR_MAX_VALUE = 2.0f;
 	
 	// define the wall threshold
 	float MIN_WALL_THRESHOLD  = 0.5f;
@@ -108,11 +108,17 @@ public class WallFollowerExample {
 			*/
 			
 			if(isStuck()){
-				System.out.println("robot stuck");
-				if (posX.size()>1)
-					System.out.println("posX: "+ posX.get(posX.size()-1)+ "pre posX "+ posX.get(posX.size()-2));
-				try {Thread.sleep(2000);} catch (InterruptedException e) {}
-				
+				System.out.println("\nrobot stuck");
+				System.out.println("posX: "+ posX.get(posX.size()-1)+ "\npre posX "+ posX.get(posX.size()-2));
+				System.out.println("posY: "+ posY.get(posY.size()-1)+ "\npre posY "+ posY.get(posY.size()-2));
+				System.out.println("\nDifference");
+				System.out.println(Math.abs(posX.get(posX.size()-1)- posX.get(posX.size()-2)));
+				System.out.println(Math.abs(posY.get(posY.size()-1)- posY.get(posY.size()-2)));
+				posX.remove(posX.size()-1);
+				posY.remove(posY.size()-1);
+					posi.setSpeed(0, 0);
+				try {Thread.sleep(10000);} catch (InterruptedException e) {}
+				continue;
 			}
 				
 				
@@ -192,7 +198,7 @@ public class WallFollowerExample {
 						System.out.println("straight line");
 					}else
 					// if we're getting too far away from the wall with the left side...
-					if (leftSide > MAX_WALL_THRESHOLD) {
+					if (leftSide > MAX_WALL_THRESHOLD && leftSide<this.SONAR_MAX_VALUE) {
 						posi.setSpeed(0, 0);
 						try { Thread.sleep (100); } catch (Exception e) { }
 						// move slower at corners
@@ -202,7 +208,18 @@ public class WallFollowerExample {
 						//yawSpeed = yawSpeed*0.7f;
 					//	yawSpeed = yawSpeed*1.2f;
 						System.out.println("2far with left");
-					}
+					}else
+						if(sonarValues[2]>this.SONAR_MAX_VALUE){
+							System.out.println("junction");
+							posi.setSpeed(0, 5);
+							try { Thread.sleep (1000); } catch (Exception e) { }
+							posi.setSpeed(1, 0);
+							try { Thread.sleep (2000); } catch (Exception e) { }
+							posi.setSpeed(0, 0);
+							try { Thread.sleep (5000); } catch (Exception e) { }
+							continue;
+						}
+			
 
 			// Move the robot
 			posi.setSpeed (xSpeed, yawSpeed);
@@ -216,10 +233,12 @@ public class WallFollowerExample {
 	}
 	
 	public boolean isStuck(){
-		if(posX.get(posX.size()-1)- posX.get(posX.size()-2)<=1){
-			if(posY.get(posY.size()-1)- posY.get(posY.size()-2)<=1)
-				return true;
-			
+		if(posX.size()>1 || posY.size()>1){
+			if(Math.abs(posX.get(posX.size()-1)- posX.get(posX.size()-2))<=0.6){
+				if(Math.abs(posY.get(posY.size()-1)- posY.get(posY.size()-2))<=0.6)
+					return true;
+				
+			}
 		}
 		return false;
 		/*
