@@ -3,9 +3,10 @@ import java.util.ArrayList;
 
 public class PosiThread implements Runnable {
 	Position2DInterface posi;
-	static ArrayList<Float> test = new ArrayList<Float>();
 	ArrayList<Float> posX;
 	ArrayList<Float> posY;
+	int arrayLength = 2;
+	int i =0;
 
 	public PosiThread(Position2DInterface posi, ArrayList<Float> posX,
 			ArrayList<Float> posY) {
@@ -16,36 +17,20 @@ public class PosiThread implements Runnable {
 
 	public void run() {
 		while (true) {
-			try {
-				Thread.sleep(2000);
-			} catch (Exception e) {
-			}
-			if (posX.size() > 10 || posY.size() > 10) {
+			if (posX.size() > arrayLength || posY.size() > arrayLength) {
 				posX.remove(0);
 				posY.remove(0);
 			}
 			posX.add(posi.getX());
 			posY.add(posi.getY());
+			/*
+			System.out.println("thread added value "+ ++i);
+			System.out.println(posX.get(posX.size()-1));
+			System.out.println(posY.get(posY.size()-1));
+			*/
+			try {Thread.sleep(4000);} catch (Exception e) {}
 		}
 	}
 
-	public void getPosX() {
-
-	}
-
-	public static void main(String[] args) {
-		for (float i = 0; i < 10; i++) {
-			test.add(i);
-		}
-		for (int i = 0; i < test.size(); i++) {
-			System.out.println("Index " + i + " = " + test.get(i));
-		}
-
-		test.remove(0);
-		for (int i = 0; i < test.size(); i++) {
-			System.out.println("Index " + i + " = " + test.get(i));
-		}
-
-	}
 
 }
