@@ -16,8 +16,8 @@ define robot_eyes ptz
 (
 	blobfinder
 	(
-	channels_count 5
-	channels ["orange" "blue" "green" "red" "pink"]
+	channels_count 6
+	channels ["orange" "blue" "green" "red" "pink" "black"]
 	image [160 120]
 	range_max 10.00
 	ptz [10 10 60]
@@ -35,14 +35,25 @@ define robot_sonar ranger
 	 scount 8 # number of Sonars
 
 	 # Sonar positions x, y, angle
-	 spose[0] [ 0.375 0.1 40 ] #Front north
-	 spose[1] [ 0.375 -0.1 320 ] # Front south
-	 spose[2] [ 0.10 0.25 90 ]   #body North rear	
-	 spose[3] [ 0.10 -0.25 270 ] #body South rear
-	 spose[4] [ 0.25 0.20 65 ]  #body north front
-	 spose[5] [ 0.25 -0.20 295 ] #body south front
-	 spose[6] [ 0.25 0.05 12.5 ]   #Front middle top
-	 spose[7] [ 0.25 -0.05 347.5]  #Front middle bottom
+	
+	#Laser Positions
+	# -0-------1-
+	# |	     \ 2
+	# |	      |	3
+	# |	      | 
+	# |	      |	4
+	# |	     / 5
+	# -7-------6-
+
+	 spose[0] [ 0.10 0.25 90 ]   
+	 spose[1] [ 0.25 0.20 65 ]  
+	 spose[2] [ 0.375 0.1 40 ] 
+	 spose[3] [ 0.25 0.05 12.5 ]  
+	 spose[4] [ 0.25 -0.05 347.5]  
+	 spose[5] [ 0.375 -0.1 320 ]  
+	 spose[6] [ 0.25 -0.20 295 ] 
+	 spose[7] [ 0.10 -0.25 270 ] 
+
 	
 	# Sonar Device Size
 	 ssize[0] [ 0.01 0.05 ]
@@ -71,7 +82,7 @@ define robot_sonar ranger
 define robot position
 (
 	#size of robot
-	size [0.625 0.5]
+	size [0.5 0.4]
 
 	#centre of rotation offset
 	origin [0.125 0 0]
