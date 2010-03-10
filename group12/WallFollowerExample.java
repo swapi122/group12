@@ -22,9 +22,11 @@
 
 
 
+import java.awt.geom.Point2D;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 
+import javaclient2.FiducialInterface;
 import javaclient2.PlayerClient;
 import javaclient2.PlayerException;
 import javaclient2.Position2DInterface;
@@ -36,23 +38,23 @@ public class WallFollowerExample {
 	NumberFormat fmt = NumberFormat.getInstance ();
 	
 	// define minimum/maximum allowed values for the SONAR sensors
-	float SONAR_MIN_VALUE = 0.2f;
-	float SONAR_MAX_VALUE = 2.0f;
+	float sonarMin = 0.2f;
+	float sonarMax = 2.0f;
 	
 	// define the wall threshold
-	float MIN_WALL_THRESHOLD  = 0.5f;
-	float MAX_WALL_THRESHOLD  = 0.6f;
+	float wallMin  = 0.5f;
+	float wallMax  = 0.6f;
 	
 	// define the default translational and rotational speeds
 	 
 
-	float DEF_X_SPEED   = 2.0f;
-	float DEF_YAW_SPEED = 0.5f;
-	// float DEF_X_SPEED   = 0.2f;
-	// float DEF_YAW_SPEED = 0.15f;
+	float givenSpeed   = 2.0f;
+	float givenTurn = 0.5f;
+	// float givenSpeed   = 0.2f;
+	// float givenTurn = 0.15f;
 	 
-	float xSpeed = DEF_X_SPEED;
-	float yawSpeed = 0;
+	float rbtSpeed = givenSpeed;
+	float rbtTurn = 0;
 	
 	// array to hold the SONAR sensor values
 	float[] sonarValues;
@@ -60,55 +62,58 @@ public class WallFollowerExample {
 	
 	
 	Thread posiThd;
-	ArrayList<Float> posX = new ArrayList<Float>();
-	ArrayList<Float> posY = new ArrayList<Float>();
+	ArrayList<Point2D.Float> prePosi = new ArrayList<Point2D.Float>();
 	
-	
-	
-	ArrayList<Long> preTime = new ArrayList<Long>();
-	float preX;
-	float preY;
-	
-	PlayerClient        robot = null;
+	PlayerClient        rbt = null;
 	Position2DInterface posi  = null;
-	SonarInterface      soni  = null;
+	SonarInterface      sonar  = null;
+	FiducialInterface 	fid	  = null; 
 	 
 	public WallFollowerExample(){
 
 		
 		try {
 			// Connect to the Player server and request access to Position and Sonar
-			robot  = new PlayerClient ("localhost", 6665);
-			posi = robot.requestInterfacePosition2D (0, PlayerConstants.PLAYER_OPEN_MODE);
-			soni = robot.requestInterfaceSonar      (0, PlayerConstants.PLAYER_OPEN_MODE);
+			rbt  = new PlayerClient ("localhost", 6665);
+			posi = rbt.requestInterfacePosition2D (0, PlayerConstants.PLAYER_OPEN_MODE);
+			sonar = rbt.requestInterfaceSonar      (0, PlayerConstants.PLAYER_OPEN_MODE);
+			fid = rbt.requestInterfaceFiducial(0, PlayerConstants.PLAYER_OPEN_MODE);
 		} catch (PlayerException e) {
 			System.err.println ("WallFollowerExample: > Error connecting to Player: ");
 			System.err.println ("    [ " + e.toString() + " ]");
 			System.exit (1);
 		}
 		
-		robot.runThreaded (-1, -1);
+		rbt.runThreaded (-1, -1);
 		
-		// Go ahead and find a wall and align to it on the robot's left side
-		getWall (posi, soni);
+		// Go ahead and find a wall and align to it on the rbt's left side
+		getWall (posi, sonar);
 		
-		posiThd = new Thread(new PosiThread(posi, posX, posY));
+		posiThd = new Thread(new PosiThread(posi, prePosi));
 		posiThd.start();
 		
 		
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
-			getSonars (soni);
+			getSonars (sonar);
 			
 			/*
 			// by default, just move in front
-			xSpeed   = DEF_X_SPEED;
-			yawSpeed = 0;
+			rbtSpeed   = givenSpeed;
+			rbtTurn = 0;
 			
 			*/
-			
+
 			if(isStuck()){
-				System.out.println("\nrobot stuck");
+				System.out.println("\nrbt stuck");
+				System.out.println("posX: "+ prePosi.get(prePosi.size()-1).getX()+ "\npre posX "+ prePosi.get(prePosi.size()-2).getX());
+				System.out.println("posY: "+ prePosi.get(prePosi.size()-1).getY()+ "\npre posY "+ prePosi.get(prePosi.size()-2).getY());
+				System.out.println("\nDifference");
+				System.out.println(Math.abs(prePosi.get(prePosi.size()-1).getX()- prePosi.get(prePosi.size()-2).getX()));
+				System.out.println(Math.abs(prePosi.get(prePosi.size()-1).getY()- prePosi.get(prePosi.size()-2).getY()));
+				prePosi.remove(prePosi.size()-1);
+				System.out.println("\nLeftside: "+leftSide+" FrontSide: "+frontSide+" RightSide: "+rightSide);
+				/*
 				System.out.println("posX: "+ posX.get(posX.size()-1)+ "\npre posX "+ posX.get(posX.size()-2));
 				System.out.println("posY: "+ posY.get(posY.size()-1)+ "\npre posY "+ posY.get(posY.size()-2));
 				System.out.println("\nDifference");
@@ -116,36 +121,54 @@ public class WallFollowerExample {
 				System.out.println(Math.abs(posY.get(posY.size()-1)- posY.get(posY.size()-2)));
 				posX.remove(posX.size()-1);
 				posY.remove(posY.size()-1);
-					posi.setSpeed(0, 0);
-				try {Thread.sleep(10000);} catch (InterruptedException e) {}
+				*/
+				posi.setSpeed(-0.5f, 0);
+				try {Thread.sleep(100);} catch (InterruptedException e) {}
+				if (leftSide==Math.max(leftSide, Math.max(rightSide, frontSide))){
+					posi.setSpeed(1, 0.5f);
+				}else if(rightSide==Math.max(rightSide, frontSide)){
+					posi.setSpeed(1, -0.5f);
+				}else
+					posi.setSpeed(1, 0);
+				try {Thread.sleep(500);} catch (InterruptedException e) {}
+				continue;
+			}
+			
+			if(isNarrow()){
+				System.out.println("narrow road");
+				while(leftSide!=rightSide && isNarrow()){
+					this.getSonars(sonar);
+					if(leftSide==rightSide)
+						posi.setSpeed(0.5f	,0);
+					else
+					if(leftSide>rightSide)
+						posi.setSpeed(0.5f, 0.2f);
+					else
+						posi.setSpeed(0.5f, -0.2f);
+				}
+				try {Thread.sleep(500);} catch (InterruptedException e) {}
 				continue;
 			}
 				
 				
 			//2close to the wall with right side
-			if(rightSide<SONAR_MIN_VALUE || leftSide<SONAR_MIN_VALUE || frontSide<SONAR_MIN_VALUE){
+			if(rightSide<sonarMin || leftSide<sonarMin || frontSide<sonarMin){
 				if (rightSide == Math.min(Math.min(rightSide, leftSide),frontSide))
-					yawSpeed = DEF_YAW_SPEED * 2;
+					rbtTurn = givenTurn;
 				else
-					yawSpeed = - DEF_YAW_SPEED * 2;
-				if (frontSide>=MIN_WALL_THRESHOLD)
-					xSpeed   = 0.50f;
+					rbtTurn = - givenTurn;
+				if (frontSide>=wallMin)
+					rbtSpeed   = 1f;
 				else
-					xSpeed   = -0.50f;
+					rbtSpeed   = -1f;
 					
 				
 					System.out.println("2close 2 collide");
-					System.out.println ("Left side : [" + leftSide + "], Front side : [" + frontSide +"], Right side: [" + rightSide +"], xSpeed : [" + xSpeed + "], yawSpeed : [" + yawSpeed + "]\n");
-					posi.setSpeed(xSpeed, yawSpeed);
-					try{
-						Thread.sleep(500);
-					}catch (Exception e){
-						
-					}
-					continue;
-			}		
+					System.out.println ("Left side : [" + leftSide + "], Front side : [" + frontSide +"], Right side: [" + rightSide +"], rbtSpeed : [" + rbtSpeed + "], rbtTurn : [" + rbtTurn + "]\n");
+					
+			}		else
 			/*
-			if(Math.max(sonarValues[2], sonarValues[4])>=SONAR_MAX_VALUE-1 && Math.max(sonarValues[3], sonarValues[5])>=SONAR_MAX_VALUE-1){
+			if(Math.max(sonarValues[2], sonarValues[4])>=sonarMax-1 && Math.max(sonarValues[3], sonarValues[5])>=sonarMax-1){
 				posi.setSpeed(0, 0);
 				System.out.println("Junction found");
 				try{
@@ -158,73 +181,73 @@ public class WallFollowerExample {
 			*/
 			
 			// if we're getting too close to the wall with the front side...
-			if (frontSide < MAX_WALL_THRESHOLD) {
+			if (frontSide < wallMax) {
 				// back up a little bit if we're bumping in front
-				xSpeed   = -0.50f;
-				yawSpeed = - DEF_YAW_SPEED * 4;
+				rbtSpeed   = -0.50f;
+				rbtTurn = - givenTurn * 4;
 				System.out.println("2close with front");
 			}else
 				// if we're getting too close to the wall with the left side...
-				if (leftSide < MIN_WALL_THRESHOLD) {
-					if (yawSpeed <= 0.01)
-						yawSpeed = -0.5f;
-					xSpeed   = DEF_X_SPEED / 2;		/*
-					if((preX==posi.getX() || preX + 0.5 == posi.getX() || preX -0.5 == posi.getX())){
-					if(preY==posi.getY() || preY + 0.5 == posi.getY() || preY -0.5 == posi.getX() ){
-						/*
-						preX = posi.getX();
-						preY = posi.getY();
-						if (preTime.size()>1000)
-							preTime.remove(0);
-						preTime.add(System.currentTimeMillis());
-						System.out.println(System.currentTimeMillis()-preX);
-						
-						return true;
-					}
-				}
-				
-				preX = posi.getX();
-				preY = posi.getY();
-				preTime.add(System.currentTimeMillis());
-				*/
-					yawSpeed = DEF_YAW_SPEED / 2;
-					//yawSpeed = - yawSpeed/3;
+				if (leftSide < wallMin) {
+					rbtSpeed   = givenSpeed;
+					rbtTurn = -givenTurn;
 					System.out.println("2close with left");
 				}
 				else
-					if(leftSide >= MIN_WALL_THRESHOLD && leftSide <= MAX_WALL_THRESHOLD){
-						xSpeed = DEF_X_SPEED;
-						yawSpeed = 0;
+					if(leftSide >= wallMin && leftSide <= wallMax){
+						rbtSpeed = givenSpeed;
+						rbtTurn = 0;
 						System.out.println("straight line");
 					}else
 					// if we're getting too far away from the wall with the left side...
-					if (leftSide > MAX_WALL_THRESHOLD && leftSide<this.SONAR_MAX_VALUE) {
-						posi.setSpeed(0, 0);
-						try { Thread.sleep (100); } catch (Exception e) { }
+					if (leftSide > wallMax){// && sonarValues[0]<this.sonarMax) {
 						// move slower at corners
-						xSpeed   = leftSide+1;
-						//xSpeed   = xSpeed-0.5f;
-						yawSpeed = leftSide*5f;
-						//yawSpeed = yawSpeed*0.7f;
-					//	yawSpeed = yawSpeed*1.2f;
+						rbtSpeed   = givenSpeed/10f;
+						//rbtSpeed   = rbtSpeed-0.5f;
+						rbtTurn = leftSide;
+						//rbtTurn = rbtTurn*0.7f;
+					//	rbtTurn = rbtTurn*1.2f;
 						System.out.println("2far with left");
 					}else
-						if(sonarValues[2]>this.SONAR_MAX_VALUE){
-							System.out.println("junction");
-							posi.setSpeed(0, 5);
+						if(sonarValues[0]>this.sonarMax){
+							//posi.setSpeed(0.5f, 0);
+							//try { Thread.sleep (1000); } catch (Exception e) { }
+							System.out.println("test entrance");
+							posi.setSpeed(0.5f, 0);
+							try { Thread.sleep (500); } catch (Exception e) { }
+							posi.setSpeed(0, 2f);
 							try { Thread.sleep (1000); } catch (Exception e) { }
-							posi.setSpeed(1, 0);
-							try { Thread.sleep (2000); } catch (Exception e) { }
-							posi.setSpeed(0, 0);
-							try { Thread.sleep (5000); } catch (Exception e) { }
+							
+							long startTime = System.currentTimeMillis();
+							
+							while((leftSide+rightSide)/2>1.0){
+								this.getSonars(sonar);
+								System.out.println("left: "+leftSide+ " right: "+rightSide);
+								posi.setSpeed(0.5f, 0);
+
+								try { Thread.sleep (100); } catch (Exception e) { }
+								//posi.setSpeed(0, 0);
+								//try { Thread.sleep (5000); } catch (Exception e) { }
+									
+								if((leftSide+rightSide)/2<=1.0){
+									System.out.println("real entrance");
+									break;
+								}
+								if(System.currentTimeMillis()-startTime>=3000){
+									System.out.println("break by time");
+									break;
+								}
+							}
 							continue;
 						}
 			
 
-			// Move the robot
-			posi.setSpeed (xSpeed, yawSpeed);
-			System.out.println ("Left side : [" + leftSide + "], Front side : [" + frontSide +"], Right side: [" + rightSide +"], xSpeed : [" + xSpeed + "], yawSpeed : [" + yawSpeed + "]\n");
+			// Move the rbt
+			posi.setSpeed (rbtSpeed, rbtTurn);
+			System.out.println ("Left side : [" + leftSide + "], Front side : [" + frontSide +"], Right side: [" + rightSide +"], rbtSpeed : [" + rbtSpeed + "], rbtTurn : [" + rbtTurn + "]\n");
 			try { Thread.sleep (100); } catch (Exception e) { }
+			//posi.setSpeed(0,0);
+			//try { Thread.sleep (2000); } catch (Exception e) { }
 			
 		}
 	}
@@ -233,7 +256,15 @@ public class WallFollowerExample {
 	}
 	
 	public boolean isStuck(){
-		if(posX.size()>1 || posY.size()>1){
+		if(prePosi.size()>1){
+			if(Math.abs(prePosi.get(prePosi.size()-1).getX()- prePosi.get(prePosi.size()-2).getX())<=0.4){
+				if(Math.abs(prePosi.get(prePosi.size()-1).getY()- prePosi.get(prePosi.size()-2).getY())<=0.4)
+					return true;	
+			}
+		}
+		return false;
+		
+		/*if(posX.size()>1 || posY.size()>1){
 			if(Math.abs(posX.get(posX.size()-1)- posX.get(posX.size()-2))<=0.6){
 				if(Math.abs(posY.get(posY.size()-1)- posY.get(posY.size()-2))<=0.6)
 					return true;
@@ -262,16 +293,16 @@ public class WallFollowerExample {
 		*/
 	}
 	
-	public void getWall (Position2DInterface posi, SonarInterface soni) {
+	public void getWall (Position2DInterface posi, SonarInterface sonar) {
 		// get all SONAR values and perform the necessary adjustments
-		getSonars (soni);
-		
-		// if the robot is in open space, go ahead until it "sees" the wall
-		while ((leftSide > MAX_WALL_THRESHOLD) && 
-				(frontSide > MAX_WALL_THRESHOLD)) {
-			posi.setSpeed (DEF_X_SPEED, 0);
+		getSonars (sonar);
+		/*
+		// if the rbt is in open space, go ahead until it "sees" the wall
+		while ((leftSide > wallMax) && 
+				(frontSide > wallMax)) {
+			posi.setSpeed (givenSpeed, 0);
 			try { Thread.sleep (100); } catch (Exception e) { }
-			getSonars (soni);
+			getSonars (sonar);
 		}
 		
 		float previousLeftSide = sonarValues[2];
@@ -281,33 +312,40 @@ public class WallFollowerExample {
 			
 			// rotate more if we're almost bumping in front
 			if (Math.min (leftSide, frontSide) == frontSide)
-				yawSpeed = -DEF_YAW_SPEED * 3;
+				rbtTurn = -givenTurn * 3;
 			else
-				yawSpeed = -DEF_YAW_SPEED;
+				rbtTurn = -givenTurn;
 			
-			// Move the robot
-			posi.setSpeed (0, yawSpeed);
+			// Move the rbt
+			posi.setSpeed (0, rbtTurn);
 			try { Thread.sleep (100); } catch (Exception e) { }
 			
-			getSonars (soni);
+			getSonars (sonar);
 		}
 		posi.setSpeed (0, 0);
+		*/
 	}
 	
-	public void getSonars (SonarInterface soni) {
-		while (!soni.isDataReady ());
-		sonarValues = soni.getData ().getRanges ();
+	public void getSonars (SonarInterface sonar) {
+		while (!sonar.isDataReady ());
+		sonarValues = sonar.getData ().getRanges ();
 		/*
-		// ignore erroneous readings/keep interval [SONAR_MIN_VALUE; SONAR_MAX_VALUE]
-		for (int i = 0; i < soni.getData ().getRanges_count (); i++)
-			if (sonarValues[i] < SONAR_MIN_VALUE)
-				sonarValues[i] = SONAR_MIN_VALUE;
+		// ignore erroneous readings/keep interval [sonarMin; sonarMax]
+		for (int i = 0; i < sonar.getData ().getRanges_count (); i++)
+			if (sonarValues[i] < sonarMin)
+				sonarValues[i] = sonarMin;
 			else
-				if (sonarValues[i] > SONAR_MAX_VALUE)
-					sonarValues[i] = SONAR_MAX_VALUE;
+				if (sonarValues[i] > sonarMax)
+					sonarValues[i] = sonarMax;
 		*/
-		leftSide = Math.min (Math.min (sonarValues[2], sonarValues [4]), sonarValues [4]);
-		rightSide = Math.min (Math.min (sonarValues[3], sonarValues [5]), sonarValues [1]);
-		frontSide = Math.min (sonarValues [6], sonarValues [7]);
+		leftSide = Math.min (Math.min (sonarValues[0], sonarValues [1]), sonarValues [0]);
+		rightSide = Math.min (Math.min (sonarValues[7], sonarValues [6]), sonarValues [7]);
+		frontSide = Math.min (sonarValues [3], sonarValues [4]);
+	}
+	public boolean isNarrow(){
+		if(sonarValues[0]+sonarValues[7]<0.6){
+			return true;
+		}
+		return false;
 	}
 }
