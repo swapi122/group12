@@ -34,12 +34,12 @@ import javaclient2.structures.PlayerConstants;
 public class WallFollowerExample {
 
 	// define minimum/maximum allowed values for the SONAR sensors
-	float sonarMin = 0.1f;
+	float sonarMin = 0.2f;
 	float sonarMax = 2.0f;
 
 	// define the wall threshold
-	float wallMin = 0.3f;
-	float wallMax = 0.4f;
+	float wallMin = 0.4f;
+	float wallMax = 0.5f;
 
 	// define the default translational and rotational speeds
 
@@ -54,6 +54,9 @@ public class WallFollowerExample {
 	// array to hold the SONAR sensor values
 	float[] sonarValues;
 	float frontSide, leftSide, rightSide;
+	
+	String preBehaviour;
+	long tmpStartTime;
 
 	Thread posiThd;
 	ArrayList<Point2D.Float> prePosi = new ArrayList<Point2D.Float>();
@@ -108,23 +111,39 @@ public class WallFollowerExample {
 			if (rightSide < sonarMin || leftSide < sonarMin
 					|| frontSide < sonarMin) {
 				robotCollide();
-
 			} else
 
 			// if we're getting too close to the wall with the front side...
 			if (frontSide < wallMax) {
 				robotCloseFront();
 			} else
+				
 			// if we're getting too close to the wall with the left side...
 			if (leftSide < wallMin) {
 				robotCloseLeft();
-			} else if (leftSide >= wallMin && leftSide <= wallMax) {
+			} else 
+				
+			if (leftSide >= wallMin && leftSide <= wallMax) {
 				robotStraight();
 			} else
+				
 			// if we're getting too far away from the wall with the left side...
 			if (leftSide > wallMax) {// && sonarValues[0]<this.sonarMax) {
 				robotFarLeft();
-			}/*
+			}else{
+				System.out.println("else");
+				System.out.println("Left side : [" + leftSide + "], Front side : ["
+						+ frontSide + "], Right side: [" + rightSide
+						+ "], rbtSpeed : [" + rbtSpeed + "], rbtTurn : [" + rbtTurn
+						+ "]\n");
+				
+				try {
+					Thread.sleep(1000);
+				} catch (Exception e) {
+				}
+			}
+			
+			/*
 			 * else if(sonarValues[0]>this.sonarMax){ //posi.setSpeed(0.5f, 0);
 			 * //try { Thread.sleep (1000); } catch (Exception e) { }
 			 * System.out.println("test entrance"); posi.setSpeed(0.5f, 0); try
@@ -162,18 +181,6 @@ public class WallFollowerExample {
 
 	public static void main(String[] args) {
 		new WallFollowerExample();
-	}
-
-	public boolean isStuck() {
-		if (prePosi.size() > 1) {
-			if (Math.abs(prePosi.get(prePosi.size() - 1).getX()
-					- prePosi.get(prePosi.size() - 2).getX()) <= 0.4) {
-				if (Math.abs(prePosi.get(prePosi.size() - 1).getY()
-						- prePosi.get(prePosi.size() - 2).getY()) <= 0.4)
-					return true;
-			}
-		}
-		return false;
 	}
 
 	public void getWall(Position2DInterface posi, SonarInterface sonar) {
@@ -222,16 +229,22 @@ public class WallFollowerExample {
 		frontSide = Math.min(sonarValues[3], sonarValues[4]);
 	}
 
-	public boolean isNarrow() {
-		if (sonarValues[0] + sonarValues[7] < 0.6) {
-			return true;
-		}
-		return false;
-	}
 
 	/********************************************
 	 * Robot moving behaviour start
 	 ******************************************/
+	public boolean isStuck() {
+		if (prePosi.size() > 1) {
+			if (Math.abs(prePosi.get(prePosi.size() - 1).getX()
+					- prePosi.get(prePosi.size() - 2).getX()) <= 0.4) {
+				if (Math.abs(prePosi.get(prePosi.size() - 1).getY()
+						- prePosi.get(prePosi.size() - 2).getY()) <= 0.4)
+					return true;
+			}
+		}
+		return false;
+	}
+	
 	public void robotStuck() {
 		System.out.println("\nrbt stuck");
 		System.out.println("posX: " + prePosi.get(prePosi.size() - 1).getX()
@@ -249,31 +262,47 @@ public class WallFollowerExample {
 
 		posi.setSpeed(-0.5f, 0);
 		try {
-			Thread.sleep(100);
+			Thread.sleep(500);
 		} catch (InterruptedException e) {
 		}
 		if (leftSide == Math.max(leftSide, Math.max(rightSide, frontSide))) {
-			posi.setSpeed(1, 0.5f);
+			if(leftSide>2)
+				posi.setSpeed(1, givenTurn*3);
+			else
+				posi.setSpeed(1, leftSide*2);
 		} else if (rightSide == Math.max(rightSide, frontSide)) {
-			posi.setSpeed(1, -0.5f);
+			if(rightSide>2)
+				posi.setSpeed(1, -givenTurn*3);
+			else
+				posi.setSpeed(1, -rightSide*2);
 		} else
 			posi.setSpeed(1, 0);
 		try {
-			Thread.sleep(500);
+			Thread.sleep(1000);
 		} catch (InterruptedException e) {
 		}
 	}
 
+	public boolean isNarrow() {
+		if (sonarValues[0] + sonarValues[7] < 0.6 && frontSide > wallMin) {
+			return true;
+		}
+		return false;
+	}
+
 	public void robotNarrow() {
+		long tmpStartTime = System.currentTimeMillis();
 		System.out.println("narrow road");
 		while (leftSide != rightSide && isNarrow()) {
 			this.getSonars(sonar);
 			if (leftSide == rightSide)
 				posi.setSpeed(0.5f, 0);
 			else if (leftSide > rightSide)
-				posi.setSpeed(0.5f, 0.2f);
+				posi.setSpeed(0.5f, 0.1f);
 			else
-				posi.setSpeed(0.5f, -0.2f);
+				posi.setSpeed(0.5f, -0.1f);
+			if(System.currentTimeMillis()-tmpStartTime>20000)
+				break;
 		}
 		try {
 			Thread.sleep(500);
@@ -282,15 +311,18 @@ public class WallFollowerExample {
 	}
 
 	public void robotCollide() {
-		if (rightSide == Math.min(Math.min(rightSide, leftSide), frontSide))
-			rbtTurn = givenTurn;
-		else
-			rbtTurn = -givenTurn;
-		if (frontSide >= wallMin)
+		if (rightSide == Math.min(Math.min(rightSide, leftSide), frontSide)){
+			rbtTurn = givenTurn/2f;
+			preBehaviour = "turnLeft";
+		}else{
+			rbtTurn = -givenTurn/2f;
+			preBehaviour = "turnRight";
+		}
+		if (frontSide >= wallMin){
 			rbtSpeed = 1f;
-		else
+		}else{
 			rbtSpeed = -1f;
-
+		}
 		System.out.println("2close 2 collide");
 		System.out.println("Left side : [" + leftSide + "], Front side : ["
 				+ frontSide + "], Right side: [" + rightSide
@@ -306,25 +338,31 @@ public class WallFollowerExample {
 	}
 
 	public void robotCloseLeft() {
-		rbtSpeed = givenSpeed / 5f;
-		rbtTurn = -givenTurn;
+		rbtSpeed = 1f;
+		rbtTurn = -givenTurn/10f;
 		System.out.println("2close with left");
+		preBehaviour = "turnRight";
 	}
 
 	public void robotStraight() {
 		rbtSpeed = givenSpeed;
-		rbtTurn = 0;
+		if (preBehaviour.equals("turnRight"))
+			rbtTurn = givenTurn/5f;
+		else
+			rbtTurn = -givenTurn/5f;
+		
 		System.out.println("straight line");
 	}
 
 	public void robotFarLeft() {
 		// move slower at corners
-		rbtSpeed = givenSpeed / 5f;
+		rbtSpeed = givenSpeed/2f;
 		// rbtSpeed = rbtSpeed-0.5f;
 		rbtTurn = leftSide;
 		// rbtTurn = rbtTurn*0.7f;
 		// rbtTurn = rbtTurn*1.2f;
 		System.out.println("2far with left");
+		preBehaviour = "turnLeft";
 	}
 	/***************************************
 	 * Robot moving behaviour end
