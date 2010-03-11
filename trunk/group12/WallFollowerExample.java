@@ -31,11 +31,12 @@ import javaclient2.PlayerClient;
 import javaclient2.PlayerException;
 import javaclient2.Position2DInterface;
 import javaclient2.SonarInterface;
+import javaclient2.LaserInterface;
 import javaclient2.structures.PlayerConstants;
 
 public class WallFollowerExample {
 	
-	NumberFormat fmt = NumberFormat.getInstance ();
+	//NumberFormat fmt = NumberFormat.getInstance ();
 	
 	// define minimum/maximum allowed values for the SONAR sensors
 	float sonarMin = 0.2f;
@@ -68,6 +69,7 @@ public class WallFollowerExample {
 	Position2DInterface posi  = null;
 	SonarInterface      sonar  = null;
 	FiducialInterface 	fid	  = null; 
+	LaserInterface 		las = null;
 	 
 	public WallFollowerExample(){
 
@@ -78,6 +80,7 @@ public class WallFollowerExample {
 			posi = rbt.requestInterfacePosition2D (0, PlayerConstants.PLAYER_OPEN_MODE);
 			sonar = rbt.requestInterfaceSonar      (0, PlayerConstants.PLAYER_OPEN_MODE);
 			fid = rbt.requestInterfaceFiducial(0, PlayerConstants.PLAYER_OPEN_MODE);
+			las = rbt.requestInterfaceLaser(0, PlayerConstants.PLAYER_OPEN_MODE);
 		} catch (PlayerException e) {
 			System.err.println ("WallFollowerExample: > Error connecting to Player: ");
 			System.err.println ("    [ " + e.toString() + " ]");
@@ -87,7 +90,7 @@ public class WallFollowerExample {
 		rbt.runThreaded (-1, -1);
 		
 		// Go ahead and find a wall and align to it on the rbt's left side
-		getWall (posi, sonar);
+		//getWall (posi, sonar);
 		
 		posiThd = new Thread(new PosiThread(posi, prePosi));
 		posiThd.start();
