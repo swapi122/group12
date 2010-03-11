@@ -55,7 +55,7 @@ public class WallFollowerExample {
 	float[] sonarValues;
 	float frontSide, leftSide, rightSide;
 	
-	String preBehaviour;
+	String preBehaviour="";
 	long tmpStartTime;
 
 	Thread posiThd;
@@ -93,12 +93,14 @@ public class WallFollowerExample {
 		// getWall (posi, sonar);
 
 		posiThd = new Thread(new PosiThread(posi, prePosi));
+		getSonars(sonar);
 		posiThd.start();
+
 
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
 			getSonars(sonar);	
-
+			
 			if (isStuck()) {
 				robotStuck();
 			} else
@@ -128,19 +130,32 @@ public class WallFollowerExample {
 			} else
 				
 			// if we're getting too far away from the wall with the left side...
-			if (leftSide > wallMax) {// && sonarValues[0]<this.sonarMax) {
+			if (leftSide > wallMax && sonarValues[0]<this.sonarMax) {
 				robotFarLeft();
-			}else{
-				System.out.println("else");
-				System.out.println("Left side : [" + leftSide + "], Front side : ["
-						+ frontSide + "], Right side: [" + rightSide
-						+ "], rbtSpeed : [" + rbtSpeed + "], rbtTurn : [" + rbtTurn
-						+ "]\n");
-				
-				try {
-					Thread.sleep(1000);
-				} catch (Exception e) {
+			} else
+			
+			if(sonarValues[0]>4.0f){
+				posi.setSpeed(0, 0);
+				System.out.println("entrance");
+				System.out.println((float) Math.PI*2);
+				for(int i=0; i<20; i++){
+					//posi.setSpeed(0, (float) Math.toRadians(360));
+					posi.setCarCMD(0, Math.PI *2);
+					try {
+						Thread.sleep(1000);
+					} catch (Exception e) {
+					}
+					posi.setSpeed(0, 0);
+					try {
+						Thread.sleep(1000);
+					} catch (Exception e) {
+					}
 				}
+			}
+			
+			else{
+				System.out.println("else");
+				robotStraight();
 			}
 			
 			/*
@@ -218,8 +233,7 @@ public class WallFollowerExample {
 	}
 
 	public void getSonars(SonarInterface sonar) {
-		while (!sonar.isDataReady())
-			;
+		while (!sonar.isDataReady());
 		sonarValues = sonar.getData().getRanges();
 
 		leftSide = Math.min(Math.min(sonarValues[0], sonarValues[1]),
