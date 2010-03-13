@@ -27,7 +27,7 @@
  *  			if robot missed 1 more entrance.
  *  
  *  
- *  20100313	Added laserValues to detect the entrance. 
+ *  20100313	Added laserValues to detect the entrance, modified robotStuck
  *  Edmond		 
  *  
  *  
@@ -59,8 +59,6 @@ public class WallFollowerExample {
 
 	float givenSpeed = 2.0f;
 	float givenTurn = 0.5f;
-	// float givenSpeed = 0.2f;
-	// float givenTurn = 0.15f;
 
 	float rbtSpeed = givenSpeed;
 	float rbtTurn = 0;
@@ -68,23 +66,25 @@ public class WallFollowerExample {
 	// array to hold the SONAR sensor values
 	float[] sonarValues;
 	float[] laserValues;
-	
+
 	float frontSide, leftSide, rightSide;
 
 	String preBehaviour = "";
 	long tmpStartTime;
 	long entranceStartTime = 0;
+	long stuckStartTime = 0;
+	
 	boolean entrance;
 	boolean flag = false;
 
 	Thread posiThd;
 	ArrayList<Point2D.Float> prePosi = new ArrayList<Point2D.Float>();
 
-	PlayerClient rbt = null;
-	Position2DInterface posi = null;
-	SonarInterface sonar = null;
-	FiducialInterface fid = null;
-	LaserInterface las = null;
+	PlayerClient rbt;
+	Position2DInterface posi;
+	SonarInterface sonar;
+	FiducialInterface fid;
+	LaserInterface las;
 
 	public WallFollowerExample() {
 
@@ -114,12 +114,12 @@ public class WallFollowerExample {
 		// getWall (posi, sonar);
 
 		posiThd = new Thread(new PosiThread(posi, prePosi));
-		getSonars(sonar);
+		getSonars();
 		posiThd.start();
 
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
-			getSonars(sonar);
+			getSonars();
 
 			if (isStuck()) {
 				robotStuck();
@@ -150,15 +150,20 @@ public class WallFollowerExample {
 			} else
 
 			// if we're getting too far away from the wall with the left side...
-			if (leftSide > wallMax && laserValues[170] < sonarMax){//sonarValues[0] < this.sonarMax) {
+			if (leftSide > wallMax && laserValues[170] < sonarMax) {// sonarValues[0]
+				// <
+				// this.sonarMax)
+				// {
 				robotFarLeft();
 			} else
 
-			if(laserValues[170] > sonarMax-0.5f){//if (sonarValues[0] > sonarMax - 0.5f) {
+			if (laserValues[170] > sonarMax - 0.5f) {// if (sonarValues[0] >
+				// sonarMax - 0.5f) {
 				System.out.println("entrance dif time: "
 						+ (System.currentTimeMillis() - entranceStartTime));
 				if (System.currentTimeMillis() - entranceStartTime < 8000) {
-					if(leftSide >= sonarMax && rightSide >= sonarMax && rightSide >= sonarMax)
+					if (leftSide >= sonarMax && rightSide >= sonarMax
+							&& rightSide >= sonarMax)
 						robotStraight();
 					else
 						robotFarLeft();
@@ -170,29 +175,11 @@ public class WallFollowerExample {
 				posi.setSpeed(1, 0);
 				entranceStartTime = System.currentTimeMillis();
 				while (System.currentTimeMillis() - entranceStartTime < 2300) {
-					getSonars(sonar);
-					System.out.println(System.currentTimeMillis()
-							- entranceStartTime);
-					System.out.println(sonarValues[0]);
-					/*
-					 * if (frontSide < sonarMin) { if (leftSide ==
-					 * Math.max(leftSide, rightSide)) { posi.setSpeed(0, 2f);
-					 * try { Thread.sleep(1000); } catch (Exception e) { }
-					 * getWall(posi, sonar); } else { posi.setSpeed(0, 2f); try
-					 * { Thread.sleep(1000); } catch (Exception e) { }
-					 * robotFarLeft(); } entrance = false; break; }
-					 */
-					if (laserValues[170] < sonarMax || frontSide < wallMin) {//if (sonarValues[0] < sonarMax || frontSide < wallMin) {
+					getSonars();
+					if (laserValues[170] < sonarMax || frontSide < wallMin) {
 						System.out.println("entrance");
 						posi.setSpeed(-1, 0);
-						if ((System.currentTimeMillis() - entranceStartTime) <= 700) {
-							/*
-							try {
-								Thread
-										.sleep((System.currentTimeMillis() - entranceStartTime) / 4);
-							} catch (Exception e) {
-							}*/
-						} else {
+						if (!((System.currentTimeMillis() - entranceStartTime) <= 700)) {
 							try {
 								Thread
 										.sleep((System.currentTimeMillis() - entranceStartTime) / 2);
@@ -210,7 +197,7 @@ public class WallFollowerExample {
 									.sleep((System.currentTimeMillis() - entranceStartTime) / 2);
 						} catch (Exception e) {
 						}
-						getSonars(sonar);
+						getSonars();
 						if (isNarrow())
 							System.out.println("Real entrance");
 						entrance = true;
@@ -254,9 +241,9 @@ public class WallFollowerExample {
 		new WallFollowerExample();
 	}
 
-	public void getWall(Position2DInterface posi, SonarInterface sonar) {
+	public void getWall() {
 		// get all SONAR values and perform the necessary adjustments
-		getSonars(sonar);
+		getSonars();
 
 		// if the robot is in open space, go ahead until it "sees" the wall
 		while ((leftSide > wallMax) && (frontSide > wallMax)) {
@@ -265,7 +252,7 @@ public class WallFollowerExample {
 				Thread.sleep(100);
 			} catch (Exception e) {
 			}
-			getSonars(sonar);
+			getSonars();
 		}
 
 		float previousLeftSide = sonarValues[0];
@@ -287,19 +274,21 @@ public class WallFollowerExample {
 			} catch (Exception e) {
 			}
 
-			getSonars(sonar);
+			getSonars();
 		}
 		posi.setSpeed(0, 0);
 
 	}
 
-	public void getSonars(SonarInterface sonar) {
-		while (!sonar.isDataReady());
+	public void getSonars() {
+		while (!sonar.isDataReady())
+			;
 		sonarValues = sonar.getData().getRanges();
-		
-		while(!las.isDataReady());
+
+		while (!las.isDataReady())
+			;
 		laserValues = las.getData().getRanges();
-		
+
 		leftSide = Math.min(Math.min(sonarValues[0], sonarValues[1]),
 				sonarValues[0]);
 		rightSide = Math.min(Math.min(sonarValues[7], sonarValues[6]),
@@ -316,7 +305,12 @@ public class WallFollowerExample {
 					- prePosi.get(prePosi.size() - 2).getX()) <= 0.4) {
 				if (Math.abs(prePosi.get(prePosi.size() - 1).getY()
 						- prePosi.get(prePosi.size() - 2).getY()) <= 0.4)
-					return true;
+					if(System.currentTimeMillis()-stuckStartTime >5000){
+						stuckStartTime=System.currentTimeMillis();
+						System.out.println(System.currentTimeMillis());
+						System.out.println(stuckStartTime);
+						return true;
+					}
 			}
 		}
 		return false;
@@ -333,19 +327,19 @@ public class WallFollowerExample {
 				- prePosi.get(prePosi.size() - 2).getX()));
 		System.out.println(Math.abs(prePosi.get(prePosi.size() - 1).getY()
 				- prePosi.get(prePosi.size() - 2).getY()));
-		prePosi.remove(prePosi.size() - 1);
+		prePosi.remove(0);
 		System.out.println("\nLeftside: " + leftSide + " FrontSide: "
 				+ frontSide + " RightSide: " + rightSide);
 
-		posi.setSpeed(-0.5f, 0);
+		posi.setSpeed(-1f, 0);
 		try {
-			Thread.sleep(1000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 		}
 
 		if (leftSide >= sonarMax && frontSide >= sonarMax
 				&& rightSide >= sonarMax)
-			getWall(posi, sonar);
+			getWall();
 		else
 
 		if (isNarrow()) {
@@ -355,27 +349,45 @@ public class WallFollowerExample {
 			} catch (InterruptedException e) {
 			}
 			posi.setSpeed(1, 0);
+			for (int i = 0; i < 3; i++) {
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+				}
+				if (sonarValues[1] > sonarMin || sonarValues[6] > sonarMin) {
+					if (sonarValues[1] > sonarValues[6]) {
+						posi.setSpeed(1, givenTurn * 3);
+					} else {
+						posi.setSpeed(1, -givenTurn * 3);
+					}
+					try {
+						Thread.sleep(2000);
+					} catch (InterruptedException e) {
+					}
+					break;
+				}
+			}
+
+		} else {
+			if (leftSide == Math.max(leftSide, Math.max(rightSide, frontSide))) {
+				if (leftSide > 2)
+					posi.setSpeed(1, givenTurn * 3);
+				else
+					posi.setSpeed(1, leftSide * 3);
+			} else if (rightSide == Math.max(rightSide, frontSide)) {
+				if (rightSide > 2)
+					posi.setSpeed(1, -givenTurn * 3);
+				else
+					posi.setSpeed(1, -rightSide * 3);
+			} else {
+				if ((frontSide - rightSide) > (frontSide - leftSide))
+					posi.setSpeed(1, -givenTurn);
+				posi.setSpeed(1, givenTurn);
+			}
 			try {
 				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 			}
-		}
-		if (leftSide == Math.max(leftSide, Math.max(rightSide, frontSide))) {
-			if (leftSide > 2)
-				posi.setSpeed(1, givenTurn * 3);
-			else
-				posi.setSpeed(1, leftSide * 3);
-		} else if (rightSide == Math.max(rightSide, frontSide)) {
-			if (rightSide > 2)
-				posi.setSpeed(1, -givenTurn * 3);
-			else
-				posi.setSpeed(1, -rightSide * 3);
-		} else if ((frontSide - rightSide) > (frontSide - leftSide))
-			posi.setSpeed(1, -givenTurn);
-		posi.setSpeed(1, givenTurn);
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
 		}
 	}
 
@@ -390,7 +402,7 @@ public class WallFollowerExample {
 		long tmpStartTime = System.currentTimeMillis();
 		System.out.println("narrow road");
 		while (leftSide != rightSide && isNarrow()) {
-			this.getSonars(sonar);
+			this.getSonars();
 			if (leftSide == rightSide)
 				posi.setSpeed(1f, 0);
 			else if (leftSide > rightSide)
@@ -455,7 +467,7 @@ public class WallFollowerExample {
 
 	public void robotFarLeft() {
 		// move slower at corners
-		rbtSpeed = givenSpeed; // 2f;
+		rbtSpeed = givenSpeed / 2f;
 		// rbtSpeed = rbtSpeed-0.5f;
 		if (leftSide < 1f)
 			leftSide = 1;
