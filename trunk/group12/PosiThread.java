@@ -1,8 +1,13 @@
+/*Position thread to record robot coordinate
+ * 
+ * 20100309		Prototype built. 
+ * Edmond
+ * 
+ */
+
 import javaclient2.Position2DInterface;
-import javaclient2.structures.PlayerPose;
 
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Float;
 import java.util.ArrayList;
 
 public class PosiThread implements Runnable {
