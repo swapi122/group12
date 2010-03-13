@@ -11,7 +11,6 @@ define robot_fiducial fiducialfinder
 (
 )
 
-
 define robot_eyes ptz
 (
 	blobfinder
