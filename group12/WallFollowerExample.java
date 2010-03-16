@@ -77,7 +77,7 @@ public class WallFollowerExample {
 	boolean entrance;
 	boolean flag = false;
 
-	Thread posiThd;
+	Thread posiThd, mapThd;
 	ArrayList<Point2D.Float> prePosi = new ArrayList<Point2D.Float>();
 	ArrayList<Point2D.Float> stuckPosi = new ArrayList<Point2D.Float>();
 
@@ -111,9 +111,12 @@ public class WallFollowerExample {
 
 		rbt.runThreaded(-1, -1);
 		
-		posiThd = new Thread(new PosiThread(posi, prePosi));
 		getSonars();
+		posiThd = new Thread(new PosiThread(posi, prePosi));
+		//mapThd = new Thread(new Mapper1(rbt,posi,las));
+		
 		posiThd.start();
+		//mapThd.start();
 
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
@@ -369,7 +372,7 @@ public class WallFollowerExample {
 		long tmpStartTime = System.currentTimeMillis();
 		System.out.println("narrow road");
 		
-		while (frontSide>sonarMin && leftSide != rightSide && isNarrow()) {
+		while (frontSide>sonarMin && leftSide != rightSide && !isStuck() && isNarrow()) {
 			this.getSonars();
 			if (leftSide == rightSide)
 				posi.setSpeed(1f, 0);
@@ -385,6 +388,7 @@ public class WallFollowerExample {
 		}
 		stopThread(500);
 		getSonars();
+		System.out.println(isStuck());
 		if(isStuck())
 			robotStuck();
 	}
