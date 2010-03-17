@@ -29,14 +29,18 @@
  *  
  *  20100313	Added laserValues to detect the entrance, modified robotStuck
  *  		 
- *  
+ *  20100317	Added Gary Blobs finder methods
  *  
  *
  */
 
+
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Float;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 
+import javaclient2.BlobfinderInterface;
 import javaclient2.FiducialInterface;
 import javaclient2.PlayerClient;
 import javaclient2.PlayerException;
@@ -44,6 +48,8 @@ import javaclient2.Position2DInterface;
 import javaclient2.SonarInterface;
 import javaclient2.LaserInterface;
 import javaclient2.structures.PlayerConstants;
+import javaclient2.structures.PlayerPoint2d;
+import javaclient2.structures.blobfinder.PlayerBlobfinderBlob;
 
 public class WallFollowerExample {
 
@@ -66,6 +72,7 @@ public class WallFollowerExample {
 	// array to hold the SONAR sensor values
 	float[] sonarValues;
 	float[] laserValues;
+	PlayerBlobfinderBlob blobsValues[];
 
 	float frontSide, leftSide, rightSide;
 
@@ -73,19 +80,23 @@ public class WallFollowerExample {
 	long tmpStartTime;
 	long entranceStartTime = 0;
 	long stuckStartTime = 0;
-	
+
 	boolean entrance;
 	boolean flag = false;
+
+	Point2D.Float currentPosi = new Float();
 
 	Thread posiThd, mapThd;
 	ArrayList<Point2D.Float> prePosi = new ArrayList<Point2D.Float>();
 	ArrayList<Point2D.Float> stuckPosi = new ArrayList<Point2D.Float>();
+	ArrayList<Point2D.Float> pathVisited = new ArrayList<Point2D.Float>();
 
 	PlayerClient rbt;
 	Position2DInterface posi;
 	SonarInterface sonar;
 	FiducialInterface fid;
 	LaserInterface las;
+	BlobfinderInterface blobf;
 
 	public WallFollowerExample() {
 
@@ -101,6 +112,8 @@ public class WallFollowerExample {
 					PlayerConstants.PLAYER_OPEN_MODE);
 			las = rbt
 					.requestInterfaceLaser(0, PlayerConstants.PLAYER_OPEN_MODE);
+			blobf = rbt.requestInterfaceBlobfinder(0,
+					PlayerConstants.PLAYER_OPEN_MODE);
 
 		} catch (PlayerException e) {
 			System.err
@@ -110,20 +123,31 @@ public class WallFollowerExample {
 		}
 
 		rbt.runThreaded(-1, -1);
-		
+
 		getSonars();
 		posiThd = new Thread(new PosiThread(posi, prePosi));
-		//mapThd = new Thread(new Mapper1(rbt,posi,las));
-		
+		// mapThd = new Thread(new WorkingMapper(rbt,posi,las));
+
 		posiThd.start();
-		//mapThd.start();
+		// mapThd.start();
 
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
 			getSonars();
-
+			
+			/*//testing repeated Path
+			if(repeatedPath()){
+				System.out.println("path repeated");
+				break;
+			}
+			*/
+			
 			if (isStuck()) {
 				robotStuck();
+			} else
+
+			if (iswallblocked()) {
+				wallblockedturn();
 			} else
 
 			if (isNarrow()) {
@@ -163,15 +187,14 @@ public class WallFollowerExample {
 				System.out.println("entrance dif time: "
 						+ (System.currentTimeMillis() - entranceStartTime));
 				if (System.currentTimeMillis() - entranceStartTime < 8000) {
-					if (leftSide >= 4 && rightSide >= 4
-							&& rightSide >= 4)
+					if (leftSide >= 4 && rightSide >= 4 && rightSide >= 4)
 						robotStraight();
 					else
 						robotFarLeft();
 					stopThread(100);
 					continue;
 				}
-				
+
 				entrance = false;
 				System.out.println("test entrance");
 				posi.setSpeed(1, 0);
@@ -191,8 +214,8 @@ public class WallFollowerExample {
 						posi.setSpeed(1, 0);
 						stopThread((System.currentTimeMillis() - entranceStartTime) / 2);
 						getSonars();
-						if (leftSide+rightSide <= 2 * wallMax)
-							
+						if (leftSide + rightSide <= 2 * wallMax)
+
 							System.out.println("Real entrance");
 						entrance = true;
 						robotFarLeft();
@@ -208,8 +231,8 @@ public class WallFollowerExample {
 					stopThread((System.currentTimeMillis() - entranceStartTime));
 					robotFarLeft();
 				}
-				if(prePosi.size()>=2)
-					prePosi.remove(prePosi.size()-1);
+				if (prePosi.size() >= 2)
+					prePosi.remove(prePosi.size() - 1);
 			}
 
 			else {
@@ -223,6 +246,10 @@ public class WallFollowerExample {
 					+ frontSide + "], Right side: [" + rightSide
 					+ "], rbtSpeed : [" + rbtSpeed + "], rbtTurn : [" + rbtTurn
 					+ "]\n");
+			currentPosi.setLocation(round1dp(posi.getX()), round1dp(posi.getY()));
+			pathVisited.add(new Point2D.Float(round1dp(posi.getX()), round1dp(posi.getY())));
+			System.out.println("pathVisited size: "+pathVisited.size());
+			System.out.println("X: " + round1dp(posi.getX()) + " Y: " + round1dp(posi.getY()));
 			stopThread(200);
 		}
 	}
@@ -264,6 +291,7 @@ public class WallFollowerExample {
 	}
 
 	public void getSonars() {
+		// get sensors+blobfinder data
 		while (!sonar.isDataReady())
 			;
 		sonarValues = sonar.getData().getRanges();
@@ -271,6 +299,10 @@ public class WallFollowerExample {
 		while (!las.isDataReady())
 			;
 		laserValues = las.getData().getRanges();
+
+		while (!blobf.isDataReady())
+			;
+		blobsValues = blobf.getData().getBlobs();
 
 		leftSide = Math.min(Math.min(sonarValues[0], sonarValues[1]),
 				sonarValues[0]);
@@ -288,8 +320,8 @@ public class WallFollowerExample {
 					- prePosi.get(prePosi.size() - 2).getX()) <= 0.5) {
 				if (Math.abs(prePosi.get(prePosi.size() - 1).getY()
 						- prePosi.get(prePosi.size() - 2).getY()) <= 0.5)
-					if(System.currentTimeMillis()-stuckStartTime >5000){
-						stuckStartTime=System.currentTimeMillis();
+					if (System.currentTimeMillis() - stuckStartTime > 5000) {
+						stuckStartTime = System.currentTimeMillis();
 						return true;
 					}
 			}
@@ -311,19 +343,19 @@ public class WallFollowerExample {
 		prePosi.remove(0);
 		System.out.println("\nLeftside: " + leftSide + " FrontSide: "
 				+ frontSide + " RightSide: " + rightSide);
-		
-		stuckPosi.add(prePosi.get(prePosi.size()-1));
+
+		stuckPosi.add(prePosi.get(prePosi.size() - 1));
+
 		posi.setSpeed(-1f, 0);
 		stopThread(2000);
 
-		if (leftSide >= wallMax && frontSide >= wallMax
-				&& rightSide >= wallMax)
+		if (leftSide >= wallMax && frontSide >= wallMax && rightSide >= wallMax)
 			getWall();
 		else
 
 		if (isNarrow()) {
-			//posi.setSpeed(1, 3.5f);
-			///stopThread(1000);
+			// posi.setSpeed(1, 3.5f);
+			// /stopThread(1000);
 			posi.setSpeed(1, 0);
 			for (int i = 0; i < 3; i++) {
 				stopThread(2000);
@@ -341,23 +373,23 @@ public class WallFollowerExample {
 
 		} else {
 			if (leftSide == Math.max(leftSide, Math.max(rightSide, frontSide))) {
-				//if (leftSide > 2)
-					posi.setSpeed(1, givenTurn * 2);
-				//else
-					//posi.setSpeed(1, leftSide * 3);
+				// if (leftSide > 2)
+				posi.setSpeed(1, givenTurn * 2);
+				// else
+				// posi.setSpeed(1, leftSide * 3);
 			} else if (rightSide == Math.max(rightSide, frontSide)) {
-				//if (rightSide > 2)
-					posi.setSpeed(1, -givenTurn * 2);
-				//else
-					//posi.setSpeed(1, -rightSide * 3);
+				// if (rightSide > 2)
+				posi.setSpeed(1, -givenTurn * 2);
+				// else
+				// posi.setSpeed(1, -rightSide * 3);
 			} else {
 				if ((frontSide - rightSide) > (frontSide - leftSide))
-					posi.setSpeed(1, -givenTurn/2);
-				posi.setSpeed(1, givenTurn/2);
+					posi.setSpeed(1, -givenTurn / 2);
+				posi.setSpeed(1, givenTurn / 2);
 			}
 			stopThread(1500);
-			if(prePosi.size() >= 2)
-				prePosi.remove(prePosi.size()-1);
+			if (prePosi.size() >= 2)
+				prePosi.remove(prePosi.size() - 1);
 		}
 	}
 
@@ -371,8 +403,9 @@ public class WallFollowerExample {
 	public void robotNarrow() {
 		long tmpStartTime = System.currentTimeMillis();
 		System.out.println("narrow road");
-		
-		while (frontSide>sonarMin && leftSide != rightSide && !isStuck() && isNarrow()) {
+
+		while (frontSide > sonarMin && leftSide != rightSide && !isStuck()
+				&& isNarrow()) {
 			this.getSonars();
 			if (leftSide == rightSide)
 				posi.setSpeed(1f, 0);
@@ -383,13 +416,13 @@ public class WallFollowerExample {
 			if (System.currentTimeMillis() - tmpStartTime > 20000 || isStuck())
 				break;
 		}
-		if(frontSide<=sonarMin){
-			posi.setSpeed(0, (float)(4*Math.PI));
+		if (frontSide <= sonarMin) {
+			posi.setSpeed(0, (float) (4 * Math.PI));
 		}
 		stopThread(500);
 		getSonars();
 		System.out.println(isStuck());
-		if(isStuck())
+		if (isStuck())
 			robotStuck();
 	}
 
@@ -436,7 +469,7 @@ public class WallFollowerExample {
 			rbtTurn = givenTurn / 4f;
 		else
 			rbtTurn = -givenTurn / 4f;
-		
+
 		posi.setSpeed(rbtSpeed, rbtTurn);
 		System.out.println("straight line");
 	}
@@ -453,16 +486,107 @@ public class WallFollowerExample {
 		preBehaviour = "turnLeft";
 		posi.setSpeed(rbtSpeed, rbtTurn);
 	}
-	public void robotStop(){
+
+	public void robotStop() {
 		posi.setSpeed(0, 0);
 	}
-	public void stopThread(long milliSecond){
+
+	public void stopThread(long milliSecond) {
 		try {
 			Thread.sleep(milliSecond);
 		} catch (Exception e) {
 		}
 	}
+	
+	public boolean repeatedPath(){
+		if(pathVisited.size()>200)
+			for (int i = 0; i < pathVisited.size()-100;i++){
+				System.out.println(currentPosi.getX()+" pre: "+pathVisited.get(i).getX());
+				if(round1dp((float) currentPosi.getX())==pathVisited.get(i).getX() && round1dp((float) currentPosi.getY())==pathVisited.get(i).getX()){
+					System.out.println("Index"+i+"Pre X: "+pathVisited.get(i).getX()+" Pre Y: "+pathVisited.get(i).getY());
+					return true;
+				}
+			}
+		return false;
+	}
+
 	/***************************************
 	 * Robot moving behaviour end
 	 ***************************************/
+
+	/**************************************
+	 * Blod finder behaviour start
+	 **************************************/
+	// checks if object blocking the robots wall is an object
+	public boolean isOccupied() {
+
+		if (blobsValues.length > 0) {
+
+			for (int i = 0; i < blobsValues.length; i++) {
+				if (blobsValues[i].getColor() == 0)
+					return false;
+
+				// if a blob is in close range, return true
+				System.out.println("range is " + blobsValues[i].getRange() / 10
+						+ " color is " + blobsValues[i].getColor());
+				if ((int) (blobsValues[i].getRange() / 10) < 120)
+					return true;
+
+			}
+
+			/*
+			 * while(!pstn.isDataReady());
+			 * 
+			 * posx = (int)pstn.getData().getPos().getPx(); posy =
+			 * (int)pstn.getData().getPos().getPy();
+			 * 
+			 * checkx = (int)Math.cos(pstn.getYaw()-10) + posx; checky =
+			 * (int)Math.sin(pstn.getYaw()-10) + posy;
+			 * 
+			 * checkx = (int)Math.cos(robpos.getYaw()-10)*lsrVals[90] + posx;
+			 * checky = (int)Math.sin(robpos.getYaw()-10)&*lsrVals[90] + posy;
+			 * 
+			 * //if the location has an object, then return true
+			 * if(objectposgrid[checkx][checky]>1){return true;} else return
+			 * false;
+			 */
+		}
+		return false;
+	}
+
+	// checks if the wall if blocked
+	public boolean iswallblocked() {
+
+		// if rightside of laser against wall, and object blocking wall
+		for (int i = 89; i >= 80; i--) {
+			if (laserValues[i] < sonarMin && isOccupied()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// if object is against or near wall, turn away
+	public void wallblockedturn() {
+
+		// stop and turn right
+		System.out.println("WALL BLOCKED, TURNING");
+		posi.setSpeed(0, -givenTurn);
+		rbtSpeed = 0;
+
+		/*
+		 * posi.setSpeed(0, -1.57f); try { Thread.sleep(1000); } catch
+		 * (Exception e) { } posi.setSpeed(1, 0); try { Thread.sleep(1000); }
+		 * catch (Exception e) { }
+		 */
+
+	}
+
+	/**************************************
+	 * Blod finder behaviour end
+	 **************************************/
+	float round1dp(float f) {
+		DecimalFormat form = new DecimalFormat("#.#");
+		return java.lang.Float.parseFloat((form.format(f)));
+	}
 }
