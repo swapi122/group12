@@ -29,11 +29,13 @@
  *  
  *  20100313	Added laserValues to detect the entrance, modified robotStuck
  *  		 
- *  20100317	Added Gary Blobs finder methods
+ *  20100316	Added Gary Blobs finder methods
+ *  
+ *  20100317	Added ArrayList to stored previous visited points, solving dead cycle problem. 
+ *  
  *  
  *
  */
-
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Float;
@@ -82,9 +84,10 @@ public class WallFollowerExample {
 	long stuckStartTime = 0;
 
 	boolean entrance;
+	boolean skipEntrance;
 	boolean flag = false;
 
-	Point2D.Float currentPosi = new Float();
+	Point2D.Float currentPosi = new Point2D.Float();
 
 	Thread posiThd, mapThd;
 	ArrayList<Point2D.Float> prePosi = new ArrayList<Point2D.Float>();
@@ -134,14 +137,13 @@ public class WallFollowerExample {
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
 			getSonars();
-			
-			/*//testing repeated Path
-			if(repeatedPath()){
-				System.out.println("path repeated");
-				break;
+
+			// repeated Path
+			if (repeatedPath()) {
+				System.out.println("PATH REPEATED");
+				skipEntrance = true;
 			}
-			*/
-			
+
 			if (isStuck()) {
 				robotStuck();
 			} else
@@ -192,6 +194,15 @@ public class WallFollowerExample {
 					else
 						robotFarLeft();
 					stopThread(100);
+					continue;
+				}
+
+				// repeated path skip 1 entrance
+				if (skipEntrance) {
+					System.out.println("entrance skipped!");
+					robotStraight();
+					stopThread(1000);
+					skipEntrance = false;
 					continue;
 				}
 
@@ -246,10 +257,12 @@ public class WallFollowerExample {
 					+ frontSide + "], Right side: [" + rightSide
 					+ "], rbtSpeed : [" + rbtSpeed + "], rbtTurn : [" + rbtTurn
 					+ "]\n");
-			currentPosi.setLocation(round1dp(posi.getX()), round1dp(posi.getY()));
-			pathVisited.add(new Point2D.Float(round1dp(posi.getX()), round1dp(posi.getY())));
-			System.out.println("pathVisited size: "+pathVisited.size());
-			System.out.println("X: " + round1dp(posi.getX()) + " Y: " + round1dp(posi.getY()));
+			currentPosi.setLocation(posi.getX(), posi.getY());
+			pathVisited.add(new Point2D.Float((float) posi.getX(), (float) posi
+					.getY()));
+			System.out.println("pathVisited size: " + pathVisited.size());
+			System.out.println("X: " + round1dp(posi.getX()) + " Y: "
+					+ round1dp(posi.getY()));
 			stopThread(200);
 		}
 	}
@@ -497,13 +510,14 @@ public class WallFollowerExample {
 		} catch (Exception e) {
 		}
 	}
-	
-	public boolean repeatedPath(){
-		if(pathVisited.size()>200)
-			for (int i = 0; i < pathVisited.size()-100;i++){
-				System.out.println(currentPosi.getX()+" pre: "+pathVisited.get(i).getX());
-				if(round1dp((float) currentPosi.getX())==pathVisited.get(i).getX() && round1dp((float) currentPosi.getY())==pathVisited.get(i).getX()){
-					System.out.println("Index"+i+"Pre X: "+pathVisited.get(i).getX()+" Pre Y: "+pathVisited.get(i).getY());
+
+	public boolean repeatedPath() {
+		if (pathVisited.size() > 200)
+			for (int i = 0; i < pathVisited.size() - 100; i++) {
+				if (round1dp(currentPosi.getX()) == round1dp(pathVisited.get(i)
+						.getX())
+						&& round1dp(currentPosi.getY()) == round1dp(pathVisited
+								.get(i).getY())) {
 					return true;
 				}
 			}
@@ -585,8 +599,10 @@ public class WallFollowerExample {
 	/**************************************
 	 * Blod finder behaviour end
 	 **************************************/
-	float round1dp(float f) {
+	
+	//general functions
+	double round1dp(double f) {
 		DecimalFormat form = new DecimalFormat("#.#");
-		return java.lang.Float.parseFloat((form.format(f)));
+		return Double.valueOf(form.format(f));
 	}
 }
