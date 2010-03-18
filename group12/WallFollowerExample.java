@@ -33,7 +33,7 @@
  *  
  *  20100317	Added ArrayList to stored previous visited points, solving dead cycle problem. 
  *  
- *  
+ *  20100318	Modified Gary object avoidance to avoid hard coding turning rate and time.
  *
  */
 
@@ -130,7 +130,6 @@ public class WallFollowerExample {
 		getSonars();
 		posiThd = new Thread(new PosiThread(posi, prePosi));
 		// mapThd = new Thread(new WorkingMapper(rbt,posi,las));
-
 		posiThd.start();
 		// mapThd.start();
 
@@ -177,10 +176,7 @@ public class WallFollowerExample {
 			} else
 
 			// if we're getting too far away from the wall with the left side...
-			if (leftSide > wallMax && laserValues[175] <= sonarMax - 0.5) {// sonarValues[0]
-				// <
-				// this.sonarMax)
-				// {
+			if (leftSide > wallMax && laserValues[175] <= sonarMax - 0.5) {
 				robotFarLeft();
 			} else
 
@@ -244,9 +240,7 @@ public class WallFollowerExample {
 				}
 				if (prePosi.size() >= 2)
 					prePosi.remove(prePosi.size() - 1);
-			}
-
-			else {
+			} else {
 				System.out.println("else");
 				robotStraight();
 			}
@@ -317,10 +311,8 @@ public class WallFollowerExample {
 			;
 		blobsValues = blobf.getData().getBlobs();
 
-		leftSide = Math.min(Math.min(sonarValues[0], sonarValues[1]),
-				sonarValues[0]);
-		rightSide = Math.min(Math.min(sonarValues[7], sonarValues[6]),
-				sonarValues[7]);
+		leftSide = Math.min(sonarValues[0], sonarValues[1]);
+		rightSide = Math.min(sonarValues[7], sonarValues[6]);
 		frontSide = Math.min(sonarValues[3], sonarValues[4]);
 	}
 
@@ -511,6 +503,17 @@ public class WallFollowerExample {
 		}
 	}
 
+	public void stopThread(long milliSecond, boolean b) {
+		for (int i = 0; i < 10; i++) {
+			if(!b)
+				break;
+			try {
+				Thread.sleep(milliSecond / 10);
+			} catch (Exception e) {
+			}
+		}
+	}
+
 	public boolean repeatedPath() {
 		if (pathVisited.size() > 200)
 			for (int i = 0; i < pathVisited.size() - 100; i++) {
@@ -537,8 +540,8 @@ public class WallFollowerExample {
 		if (blobsValues.length > 0) {
 
 			for (int i = 0; i < blobsValues.length; i++) {
-				if (blobsValues[i].getColor() == 0)
-					return false;
+				// if (blobsValues[i].getColor() == 0)
+				// return false;
 
 				// if a blob is in close range, return true
 				System.out.println("range is " + blobsValues[i].getRange() / 10
@@ -557,8 +560,8 @@ public class WallFollowerExample {
 			 * checkx = (int)Math.cos(pstn.getYaw()-10) + posx; checky =
 			 * (int)Math.sin(pstn.getYaw()-10) + posy;
 			 * 
-			 * checkx = (int)Math.cos(robpos.getYaw()-10)*lsrVals[90] + posx;
-			 * checky = (int)Math.sin(robpos.getYaw()-10)&*lsrVals[90] + posy;
+			 * checkx = (int)Math.cos(robpos.getYaw()-10)lsrVals[90] + posx;
+			 * checky = (int)Math.sin(robpos.getYaw()-10)&lsrVals[90] + posy;
 			 * 
 			 * //if the location has an object, then return true
 			 * if(objectposgrid[checkx][checky]>1){return true;} else return
@@ -572,8 +575,8 @@ public class WallFollowerExample {
 	public boolean iswallblocked() {
 
 		// if rightside of laser against wall, and object blocking wall
-		for (int i = 89; i >= 80; i--) {
-			if (laserValues[i] < sonarMin && isOccupied()) {
+		for (int i = 129; i >= 60; i--) {
+			if (laserValues[i] < sonarMax && isOccupied()) {
 				return true;
 			}
 		}
@@ -585,8 +588,9 @@ public class WallFollowerExample {
 
 		// stop and turn right
 		System.out.println("WALL BLOCKED, TURNING");
-		posi.setSpeed(0, -givenTurn);
-		rbtSpeed = 0;
+		// posi.setSpeed(0.5f, -givenTurn*3);
+		rbtSpeed = 0.5f;
+		rbtTurn = -givenTurn * 3;
 
 		/*
 		 * posi.setSpeed(0, -1.57f); try { Thread.sleep(1000); } catch
@@ -599,8 +603,8 @@ public class WallFollowerExample {
 	/**************************************
 	 * Blod finder behaviour end
 	 **************************************/
-	
-	//general functions
+
+	// general functions
 	double round1dp(double f) {
 		DecimalFormat form = new DecimalFormat("#.#");
 		return Double.valueOf(form.format(f));
