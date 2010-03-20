@@ -1,9 +1,8 @@
 include "map.inc"
 
 include "fire.inc"
-
-include "obstacle.inc"
 include "group12robot.inc"
+include "obstacle.inc"
 include "dead.inc"
 
 include "living.inc"
@@ -13,8 +12,8 @@ size [61.46 33.48]
 
 window
 (
-	size [800.000 400.000]
-	scale 0.100
+	size [1000.000 600.000]
+	scale 0.065
 )
 
 map
@@ -28,6 +27,7 @@ obstacle
 	color "red"
 	size [0.8 0.6]
 	pose [-8.300 -1.500 0.000]
+	fiducial_return 0
 )
 
 
@@ -36,6 +36,7 @@ obstacle
 	color "SkyBlue"
 	size [0.5 0.5]
 	pose [-22.400 -1.000 0.000]
+	fiducial_return 0
 )
 
 
@@ -44,6 +45,7 @@ obstacle
 	color "red"
 	size [0.8 0.6]
 	pose [-13.600 -7.400 0.000]
+	fiducial_return 0
 )
 
 obstacle
@@ -51,6 +53,7 @@ obstacle
 	color "green"
 	size [1 1]
 	pose [-21.600 -11.000 0.000]
+	fiducial_return 150
 )
 
 obstacle
@@ -58,6 +61,7 @@ obstacle
 	color "green"
 	size [1 1]
 	pose [-24.800 -3.600 0.000]
+	fiducial_return 150
 )
 
 obstacle
@@ -65,6 +69,7 @@ obstacle
 	color "SkyBlue"
 	size [0.5 0.5]
 	pose [-21.800 -1.400 0.000]
+	fiducial_return 0
 )
 
 obstacle
@@ -72,6 +77,7 @@ obstacle
 	color "red"
 	size [0.8 0.6]
 	pose [-16.300 -2.300 0.000]
+	fiducial_return 0
 )
 
 obstacle
@@ -79,6 +85,7 @@ obstacle
 	color "green"
 	size [1 1]
 	pose [3.000 1.100 0.000]
+	fiducial_return 150
 )
 
 obstacle
@@ -86,6 +93,7 @@ obstacle
 	color "SkyBlue"
 	size [0.5 0.5]
 	pose [-21.300 -0.700 0.000]
+	fiducial_return 0
 )
 
 obstacle
@@ -93,6 +101,7 @@ obstacle
 	color "red"
 	size [0.8 0.6]
 	pose [-4.200 2.400 0.000]
+	fiducial_return 0
 )
 
 obstacle
@@ -100,6 +109,7 @@ obstacle
 	color "green"
 	size [1 1]
 	pose [-20.500 2.300 0.000]
+	fiducial_return 150
 )
 
 obstacle
@@ -107,6 +117,7 @@ obstacle
 	color "SkyBlue"
 	size [0.5 0.5]
 	pose [-23.400 -6.400 0.000]
+	fiducial_return 0
 )
 
 obstacle
@@ -114,6 +125,7 @@ obstacle
 	color "red"
 	size [0.8 0.6]
 	pose [-4.000 -10.000 0.000]
+	fiducial_return 0
 )
 
 
@@ -157,3 +169,9 @@ dead
 	pose [-28.700 -5.200 0.000]
 )
 
+robot
+(
+name "g12robot"
+pose [-30.5 -16 0]
+color "green"
+)
