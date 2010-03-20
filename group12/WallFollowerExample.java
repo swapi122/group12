@@ -30,6 +30,8 @@
  *  20100313	Added laserValues to detect the entrance, modified robotStuck
  *  		 
  *  20100316	Added Gary Blobs finder methods
+ *  	
+ *  			Problems in detecting and reacting with blobs
  *  
  *  20100317	Added ArrayList to stored previous visited points, solving dead cycle problem. 
  *  
@@ -86,6 +88,8 @@ public class WallFollowerExample {
 	boolean entrance;
 	boolean skipEntrance;
 	boolean flag = false;
+	
+	int blobAng;
 
 	Point2D.Float currentPosi = new Point2D.Float();
 
@@ -136,6 +140,13 @@ public class WallFollowerExample {
 		while (true) {
 			// get all SONAR values and perform the necessary adjustments
 			getSonars();
+			
+			currentPosi.setLocation(posi.getX(), posi.getY());
+			pathVisited.add(new Point2D.Float((float) posi.getX(), (float) posi
+					.getY()));
+			System.out.println("pathVisited size: " + pathVisited.size());
+			System.out.println("X: " + round1dp(posi.getX()) + " Y: "
+					+ round1dp(posi.getY()));
 
 			// repeated Path
 			if (repeatedPath()) {
@@ -149,6 +160,7 @@ public class WallFollowerExample {
 
 			if (iswallblocked()) {
 				wallblockedturn();
+				continue;
 			} else
 
 			if (isNarrow()) {
@@ -156,8 +168,8 @@ public class WallFollowerExample {
 			} else
 
 			// 2close to the wall with right side
-			if (rightSide < sonarMin || leftSide < sonarMin
-					|| frontSide < sonarMin) {
+			if (rightSide <= sonarMin || leftSide <= sonarMin
+					|| frontSide <= sonarMin) {
 				robotCollide();
 			} else
 
@@ -197,7 +209,7 @@ public class WallFollowerExample {
 				if (skipEntrance) {
 					System.out.println("entrance skipped!");
 					robotStraight();
-					stopThread(1000);
+					stopThread(1000,iswallblocked());
 					skipEntrance = false;
 					continue;
 				}
@@ -206,7 +218,8 @@ public class WallFollowerExample {
 				System.out.println("test entrance");
 				posi.setSpeed(1, 0);
 				entranceStartTime = System.currentTimeMillis();
-				while (System.currentTimeMillis() - entranceStartTime < 2000) {
+				while (System.currentTimeMillis() - entranceStartTime < 2000 && !iswallblocked()) {
+					
 					System.out.println("entrance dif time: "
 							+ (System.currentTimeMillis() - entranceStartTime));
 					getSonars();
@@ -219,17 +232,23 @@ public class WallFollowerExample {
 						posi.setSpeed(0, 2.7f);
 						stopThread(1000);
 						posi.setSpeed(1, 0);
-						stopThread((System.currentTimeMillis() - entranceStartTime) / 2);
+						stopThread((System.currentTimeMillis() - entranceStartTime) / 2,iswallblocked());
+						if(iswallblocked())
+							break;
+						
 						getSonars();
 						if (leftSide + rightSide <= 2 * wallMax)
 
 							System.out.println("Real entrance");
+						
 						entrance = true;
 						robotFarLeft();
 						stopThread(100);
 						break;
 					}
 				}
+				if (iswallblocked())
+					continue;
 				// not an entrance
 				if (!entrance) {
 					posi.setSpeed(-1, 0);
@@ -251,12 +270,7 @@ public class WallFollowerExample {
 					+ frontSide + "], Right side: [" + rightSide
 					+ "], rbtSpeed : [" + rbtSpeed + "], rbtTurn : [" + rbtTurn
 					+ "]\n");
-			currentPosi.setLocation(posi.getX(), posi.getY());
-			pathVisited.add(new Point2D.Float((float) posi.getX(), (float) posi
-					.getY()));
-			System.out.println("pathVisited size: " + pathVisited.size());
-			System.out.println("X: " + round1dp(posi.getX()) + " Y: "
-					+ round1dp(posi.getY()));
+			
 			stopThread(200);
 		}
 	}
@@ -352,8 +366,14 @@ public class WallFollowerExample {
 		stuckPosi.add(prePosi.get(prePosi.size() - 1));
 
 		posi.setSpeed(-1f, 0);
-		stopThread(2000);
-
+		stopThread(2000,iswallblocked());
+		
+		//avoid object
+		while(iswallblocked()){
+			getSonars();
+			wallblockedturn();
+			stopThread(100);
+		}
 		if (leftSide >= wallMax && frontSide >= wallMax && rightSide >= wallMax)
 			getWall();
 		else
@@ -363,7 +383,14 @@ public class WallFollowerExample {
 			// /stopThread(1000);
 			posi.setSpeed(1, 0);
 			for (int i = 0; i < 3; i++) {
-				stopThread(2000);
+				stopThread(2000,iswallblocked());
+
+				//avoid object
+				while(iswallblocked()){
+					getSonars();
+					wallblockedturn();
+					stopThread(100);
+				}
 				getSonars();
 				if (sonarValues[1] > sonarMin || sonarValues[6] > sonarMin) {
 					if (sonarValues[1] > sonarValues[6]) {
@@ -371,7 +398,7 @@ public class WallFollowerExample {
 					} else {
 						posi.setSpeed(1, -2);
 					}
-					stopThread(2000);
+					stopThread(2000,iswallblocked());
 					break;
 				}
 			}
@@ -392,7 +419,7 @@ public class WallFollowerExample {
 					posi.setSpeed(1, -givenTurn / 2);
 				posi.setSpeed(1, givenTurn / 2);
 			}
-			stopThread(1500);
+			stopThread(1500,iswallblocked());
 			if (prePosi.size() >= 2)
 				prePosi.remove(prePosi.size() - 1);
 		}
@@ -424,7 +451,7 @@ public class WallFollowerExample {
 		if (frontSide <= sonarMin) {
 			posi.setSpeed(0, (float) (4 * Math.PI));
 		}
-		stopThread(500);
+		stopThread(500,iswallblocked());
 		getSonars();
 		System.out.println(isStuck());
 		if (isStuck())
@@ -576,7 +603,8 @@ public class WallFollowerExample {
 
 		// if rightside of laser against wall, and object blocking wall
 		for (int i = 129; i >= 60; i--) {
-			if (laserValues[i] < sonarMax && isOccupied()) {
+			if (laserValues[i] < sonarMax+0.5 && isOccupied()) {
+				blobAng=i;
 				return true;
 			}
 		}
@@ -586,18 +614,23 @@ public class WallFollowerExample {
 	// if object is against or near wall, turn away
 	public void wallblockedturn() {
 
+		
 		// stop and turn right
 		System.out.println("WALL BLOCKED, TURNING");
 		// posi.setSpeed(0.5f, -givenTurn*3);
 		rbtSpeed = 0.5f;
 		rbtTurn = -givenTurn * 3;
+		
+		if(laserValues[blobAng]<=sonarMin)
+			rbtSpeed = 0.2f;
 
 		/*
 		 * posi.setSpeed(0, -1.57f); try { Thread.sleep(1000); } catch
 		 * (Exception e) { } posi.setSpeed(1, 0); try { Thread.sleep(1000); }
 		 * catch (Exception e) { }
 		 */
-
+		posi.setSpeed(rbtSpeed, rbtTurn);
+		stopThread(100);
 	}
 
 	/**************************************
