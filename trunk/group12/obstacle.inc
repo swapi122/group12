@@ -8,6 +8,5 @@ define obstacle model
 	polygon[0].point[3] [1 0]
 
 	gripper_return 1
-	fiducial_return 0
 )
 

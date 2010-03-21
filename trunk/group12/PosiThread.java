@@ -26,7 +26,7 @@ public class PosiThread implements Runnable {
 				prePosi.remove(0);
 			}
 			prePosi.add(new Point2D.Float(posi.getX(),posi.getY()));
-			try {Thread.sleep(5000);} catch (Exception e) {}
+			try {Thread.sleep(6000);} catch (Exception e) {}
 		}
 	}
 
