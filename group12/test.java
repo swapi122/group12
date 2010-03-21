@@ -39,14 +39,20 @@ public class test {
 		}
 
 		rbt.runThreaded(-1, -1);
+		
+		Thread drawThd = new Thread(new DrawThread(posi,las));
+		//drawThd.start();
 		//posi.setSpeed(0, -1f);
 		//stopThread(1000);
+		
 		while (true){
 			//posi.setSpeed(0, -0.5f);
+			while(!las.isDataReady());
 			System.out.println("X: "+posi.getData().getPos().getPx());
 			System.out.println("Y: "+posi.getData().getPos().getPy());
 			System.out.println("Pa: "+posi.getData().getPos().getPa());
 			System.out.println("Yaw: "+posi.getYaw() + "\n");
+			System.out.println("las160 range: "+ las.getData().getRanges()[160]);
 			stopThread(1000);
 		}
 		

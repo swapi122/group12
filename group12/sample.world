@@ -172,6 +172,6 @@ dead
 robot
 (
 name "g12robot"
-pose [-30.5 -16 0]
+pose [-27.8 -14.0 0]
 color "green"
 )

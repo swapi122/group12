@@ -100,7 +100,7 @@ define robot position
 	polygon[0].point[5] [0.75 0]
 
 robot_laser()
-robot_grip()
+##robot_grip()
 robot_eyes()
 robot_sonar()
 robot_fiducial()

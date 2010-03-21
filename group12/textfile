@@ -1,0 +1,48 @@
+The Programming Thread
+
+Hey everyone, thought i'd make a main thread for everything programming related. Any questions you may have, or any material or solutions you come up with, please post here.
+
+------------------------------------------
+IMPORTANT:
+
+Please find attached the segsample folder with additional files we have created, these are:
+
+group12robot.inc
+mostrecent.java (robot control code)
+
+The robot control code is temporary, at the moment we're all working on different code to try and come up with the best solutions, but it navigates randomly with few problems.
+
+-----------------------------------------
+
+How to run:
+* Save the tar file to your home folder
+* Using the Konquerer GUI, navigate to the home folder, right click, and it'll give   you the open to unzip the file into a folder
+* Open a terminal in linux
+* Type in:  cd segsample
+                player sample.cfg
+
+* Open a second terminal and again, type in :  cd segsample
+* then type in:     javac mostrecent.java
+* then type:    java mostrecent
+
+* The robot control code will now run on the robot. You must compile the java code everytime you make changes to it.
+------------------------------------------   
+
+Priorities: At the moment, the main task is to find the best way to ensure that the robot follows some kind of path, and isn't just following the wall randomly. We are exploring a number of different ways to achieve this. Wallfollowing is an idea, and depth first search as suggested by Edmund seems to be like a good way of going about it.
+
+The robot navigates via sonar, and the laser should identify  doorways and anomolies to give itself an idea of the map, and use some kind of depth first search algorithm to remember where they are, and remember to visit them.
+
+The robot must avoid hitting immovable objects, people, and fires. The robot currently does this somewhat, but we need to implement better code to ensure it can find better paths around the object if the path between the object and wall is too tight. Blobfinder/fiducialfinder currently identifies them though.
+
+Everyone needs to try and install edmonds google eclipse plugin too, as it's an incredibly useful too which will allow us all to share code very easily.
+
+-------------------------------------------
+Couple of other notes:
+
+* I know this is very daunting, and some people don't feel very confident with their programming, but the best thing we can all do at the moment is each try and do whatever we can. A little can go a long way, as if there are 6 of us all trying to program, then thats 6 set of ideas and solutions. I reccomend editing the code i've uploaded, trying to understand what it does, reading the API for javaclient2, and the first 30 pages of the player/stage tutorial on the moodle site.
+
+* If anyone feels they want help programming, then we can arrange a time when we can all meet, and assist one another with any questions we may have.
+
+Anyway, hope thats helped!
+
+Gary

@@ -64,7 +64,7 @@ public class objectdetection{
 		if(blobs.length>0){
 			
 			for(int i = 0; i<blobs.length; i++){
-				//if a blob is in close range, return true
+				//if a blob is in close range, retruen true
 				System.out.println("range is " + blobs[i].getRange()/10 + "color is" + blobs[i].getColor());
 				if((int)(blobs[i].getRange()/10)<120) return true; 
 			
